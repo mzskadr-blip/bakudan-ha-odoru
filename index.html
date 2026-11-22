@@ -963,13 +963,14 @@
 
       <div id="claimActualBox" class="peek-reveal-box" style="margin: 12px 0 6px; padding: 10px 12px;"></div>
 
-      <div class="claim-form-grid">
+      <div style="font-size: 0.95rem; font-weight: 800; margin-top: 12px; color: var(--text);">自己申告</div>
+      <div class="claim-form-grid" style="margin-top: 8px;">
         <div class="claim-input-box">
-          <span class="box-label">💣 自己申告：爆弾数</span>
+          <span class="box-label">💣 爆弾数</span>
           <div id="claimBombBtns" class="claim-num-btns"></div>
         </div>
         <div class="claim-input-box">
-          <span class="box-label">🔑 自己申告：解除コード数</span>
+          <span class="box-label">🔑 解除数</span>
           <div id="claimCodeBtns" class="claim-num-btns"></div>
         </div>
       </div>
@@ -1356,39 +1357,18 @@
       game.selectedTargets = [];
     }
 
-    // 覗き見＆自己申告モーダル
+    // 初期確認：ワンクッションなしで直接「場札表示＋自己申告入力」モーダルを開く
     function openInitialPeek(playerIdx) {
-      const p = game.players[playerIdx];
       game.viewingPlayerIndex = playerIdx;
-      game.peekQueue = [{
-        kind: "initial",
-        playerIndex: playerIdx,
-        title: `初期導線確認：${seatMark(playerIdx)} ${p.name}`,
-        subtitle: "自分の導線を確認したら「OK」を押してください（他の人には見えません）。",
-        items: p.wires.map((w, idx) => `導線${idx + 1}：${WIRE_LABELS[w.kind]}`)
-      }];
-      showNextPeekModal();
+      openClaimModal(playerIdx, "initial");
     }
 
-    // スタンダードモード（3枚モード）の1周目終了時限定：自分の場札確認
+    // スタンダードモード（3枚モード）の1周目終了時限定：直接「場札表示＋自己申告入力」モーダルを開く
     function openLap1EndWireCheck() {
       if (!game || game.phase !== "discussion" || game.mode !== "standard" || game.discussionAfterLap !== 1) return;
       const p = game.players[game.viewingPlayerIndex];
       if (p.usedLap1EndCheck) return;
-
-      const items = p.wires.map((w, idx) => {
-        const status = w.revealed ? "【公開済】" : "【裏向き】";
-        return `導線${idx + 1}${status}：${WIRE_LABELS[w.kind]}`;
-      });
-
-      game.peekQueue = [{
-        kind: "lap1_end",
-        playerIndex: p.index,
-        title: `1周目終了時の場札確認：${seatMark(p.index)} ${p.name}`,
-        subtitle: "現在の自分の場札を確認したら「OK」を押してください（その後、自己申告を入力できます）。",
-        items
-      }];
-      showNextPeekModal();
+      openClaimModal(p.index, "lap1_end");
     }
 
     function enqueuePeek(peekObj) {
@@ -1541,11 +1521,13 @@
       closeModal("claimModal");
 
       if (timing === "initial") {
+        game.peekedInitial[playerIdx] = true;
+        p.wires = shuffleArray(p.wires);
         p.initialClaim = claimData;
         if (claimData) {
-          addLog(`【初期申告】${seatMark(playerIdx)}${p.name}：爆弾 ${claimData.bombs}個 / 解除コード ${claimData.codes}個`, false);
+          addLog(`【初期確認・申告】${seatMark(playerIdx)}${p.name}：爆弾 ${claimData.bombs}個 / 解除 ${claimData.codes}個（導線シャッフル済）`, false);
         } else {
-          addLog(`【初期申告】${seatMark(playerIdx)}${p.name}：申告なし`, false);
+          addLog(`【初期確認・申告】${seatMark(playerIdx)}${p.name}：申告なし（導線シャッフル済）`, false);
         }
 
         const nextUnpeeked = game.peekedInitial.findIndex((done) => !done);
@@ -1564,11 +1546,12 @@
       }
 
       if (timing === "lap1_end") {
+        p.usedLap1EndCheck = true;
         p.lap1EndClaim = claimData;
         if (claimData) {
-          addLog(`【1周目終了時 申告】${seatMark(playerIdx)}${p.name}：爆弾 ${claimData.bombs}個 / 解除コード ${claimData.codes}個`, false);
+          addLog(`【1周目終了時 確認・申告】${seatMark(playerIdx)}${p.name}：爆弾 ${claimData.bombs}個 / 解除 ${claimData.codes}個`, false);
         } else {
-          addLog(`【1周目終了時 申告】${seatMark(playerIdx)}${p.name}：申告なし`, false);
+          addLog(`【1周目終了時 確認・申告】${seatMark(playerIdx)}${p.name}：申告なし`, false);
         }
         renderAll();
       }
