@@ -719,6 +719,7 @@
       font-weight: 800;
       text-align: center;
       background: var(--panel-2);
+      color: var(--text);
       border: 2px solid var(--border);
     }
 
@@ -891,6 +892,8 @@
         自分の場札にある「爆弾数」と「解除コード数」をタップして宣言できます（ブラフ・嘘もOK）。
       </p>
 
+      <div id="claimActualBox" class="peek-reveal-box" style="margin: 12px 0 6px; padding: 10px 12px;"></div>
+
       <div class="claim-form-grid">
         <div class="claim-input-box">
           <span class="box-label">💣 自己申告：爆弾数</span>
@@ -974,7 +977,7 @@
     const WIRE_LABELS = {
       bomb: "時限爆弾",
       code: "解除コード",
-      safe: "安全"
+      safe: "スカ"
     };
 
     // 2. 人数・モード別バランス設定
@@ -1078,7 +1081,7 @@
       document.getElementById("setupSummary").innerHTML = `
         <strong>選択中バランス：</strong>${setupState.playerCount}人 / ${setupState.mode === "light" ? "ライトモード（場札2枚）" : "スタンダードモード（場札3枚・1周目終了時に場札確認あり）"}<br/>
         ・<strong>役職（ランダム欠け）：</strong>${cfg.rolePool.length}枚から${setupState.playerCount}枚配布（残り${cfg.rolePool.length - setupState.playerCount}枚は未使用・非公開）<br/>
-        ・<strong>導線カード（計${setupState.playerCount * cfg.wiresPerPlayer}枚）：</strong>時限爆弾 ${cfg.bombCount}枚 / 解除コード ${cfg.codeCount}枚（<strong>${cfg.winCodes}枚</strong>で捜査官勝利）/ 安全 ${cfg.safeCount}枚<br/>
+        ・<strong>導線カード（計${setupState.playerCount * cfg.wiresPerPlayer}枚）：</strong>時限爆弾 ${cfg.bombCount}枚 / 解除コード ${cfg.codeCount}枚（<strong>${cfg.winCodes}枚</strong>で捜査官勝利）/ スカ ${cfg.safeCount}枚<br/>
         ・<strong>自己申告（嘘OK）：</strong>初期確認時${setupState.mode === "standard" ? "＆1周目終了時の場札確認時" : ""}に入力可能
       `;
     }
@@ -1378,6 +1381,21 @@
       document.getElementById("claimTitle").textContent = `自己申告の入力（${timingLabel}・嘘も可）`;
       document.getElementById("claimSubtitle").textContent =
         `${seatMark(playerIdx)} ${p.name} の自己申告をタップして選択してください。実際の枚数と違っていても構いません（ブラフOK）。`;
+
+      const actualBombs = p.wires.filter((w) => w.kind === "bomb").length;
+      const actualCodes = p.wires.filter((w) => w.kind === "code").length;
+      const actualSafes = p.wires.filter((w) => w.kind === "safe").length;
+      const wireChips = p.wires
+        .map((w, i) => `<span class="chip">導線${i + 1}：${WIRE_LABELS[w.kind]}${w.revealed ? "（公開済）" : ""}</span>`)
+        .join("");
+
+      document.getElementById("claimActualBox").innerHTML = `
+        <div style="font-size: 0.78rem; color: var(--muted); margin-bottom: 4px;">あなたの実際の場札（自分のみ表示）</div>
+        <div style="font-size: 0.92rem; font-weight: 800; color: #fde047;">
+          💣 時限爆弾：${actualBombs}個 ／ 🔑 解除コード：${actualCodes}個 ／ スカ：${actualSafes}枚
+        </div>
+        <div class="peek-chips">${wireChips}</div>
+      `;
 
       renderClaimButtons();
       document.getElementById("claimModal").classList.add("open");
@@ -2131,7 +2149,7 @@
               label = "時限爆弾";
             } else {
               cls += "wire-revealed-safe";
-              label = "安全";
+              label = "スカ";
             }
           } else {
             cls += "wire-hidden";
