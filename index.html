@@ -283,11 +283,6 @@
       width: 100%;
     }
 
-    .board-slot.empty-slot {
-      visibility: hidden;
-      pointer-events: none;
-    }
-
     .h-arrow {
       display: flex;
       align-items: center;
@@ -689,6 +684,7 @@
       font-weight: 700;
     }
 
+    /* 自己申告（嘘も可）ワンタップボタンUI */
     .claim-form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -700,25 +696,36 @@
       background: #0f172a;
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 10px;
+      padding: 12px;
     }
 
-    .claim-input-box label {
+    .claim-input-box .box-label {
       display: block;
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       font-weight: 700;
-      margin-bottom: 6px;
+      margin-bottom: 10px;
     }
 
-    .claim-input-box input[type="number"] {
-      width: 100%;
-      padding: 8px 10px;
+    .claim-num-btns {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+    }
+
+    .claim-num-btn {
+      padding: 10px 0;
       border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--panel);
-      color: var(--text);
       font-size: 1rem;
-      font-weight: 700;
+      font-weight: 800;
+      text-align: center;
+      background: var(--panel-2);
+      border: 2px solid var(--border);
+    }
+
+    .claim-num-btn.active {
+      background: var(--accent);
+      color: #082f49;
+      border-color: transparent;
     }
 
     .choice-list {
@@ -876,22 +883,22 @@
     </div>
   </div>
 
-  <!-- 自己申告（嘘も可）入力モーダル -->
+  <!-- 自己申告（嘘も可）ワンタップ入力モーダル -->
   <div id="claimModal" class="modal-backdrop">
     <div class="modal-card">
       <h2 id="claimTitle">自己申告の入力（嘘も可）</h2>
       <p id="claimSubtitle" style="color: var(--muted); font-size: 0.88rem; margin: 0;">
-        自分の場札にある「爆弾数」と「解除コード数」を自由に申告できます（ブラフ・嘘もOK）。
+        自分の場札にある「爆弾数」と「解除コード数」をタップして宣言できます（ブラフ・嘘もOK）。
       </p>
 
       <div class="claim-form-grid">
         <div class="claim-input-box">
-          <label for="claimBombInput">自己申告：爆弾数</label>
-          <input type="number" id="claimBombInput" min="0" max="5" value="0" />
+          <span class="box-label">💣 自己申告：爆弾数</span>
+          <div id="claimBombBtns" class="claim-num-btns"></div>
         </div>
         <div class="claim-input-box">
-          <label for="claimCodeInput">自己申告：解除コード数</label>
-          <input type="number" id="claimCodeInput" min="0" max="5" value="0" />
+          <span class="box-label">🔑 自己申告：解除コード数</span>
+          <div id="claimCodeBtns" class="claim-num-btns"></div>
         </div>
       </div>
 
@@ -1356,35 +1363,66 @@
       renderAll();
     }
 
-    // 自己申告（嘘も可）モーダル
+    // 自己申告（嘘も可）ワンタップ選択モーダル
     function openClaimModal(playerIdx, timing) {
       const p = game.players[playerIdx];
-      game.pendingClaim = { playerIndex: playerIdx, timing };
+      const prevClaim = timing === "initial" ? p.initialClaim : p.lap1EndClaim;
+      game.pendingClaim = {
+        playerIndex: playerIdx,
+        timing,
+        bombs: prevClaim ? prevClaim.bombs : 0,
+        codes: prevClaim ? prevClaim.codes : 0
+      };
 
       const timingLabel = timing === "initial" ? "初期確認後" : "1周目終了時の確認後";
       document.getElementById("claimTitle").textContent = `自己申告の入力（${timingLabel}・嘘も可）`;
       document.getElementById("claimSubtitle").textContent =
-        `${seatMark(playerIdx)} ${p.name} の自己申告を入力してください。実際の枚数と違っていても構いません（ブラフOK）。`;
+        `${seatMark(playerIdx)} ${p.name} の自己申告をタップして選択してください。実際の枚数と違っていても構いません（ブラフOK）。`;
 
-      const prevClaim = timing === "initial" ? p.initialClaim : p.lap1EndClaim;
-      document.getElementById("claimBombInput").value = prevClaim ? prevClaim.bombs : 0;
-      document.getElementById("claimCodeInput").value = prevClaim ? prevClaim.codes : 0;
+      renderClaimButtons();
       document.getElementById("claimModal").classList.add("open");
     }
 
-    function sanitizeClaimNumber(val) {
-      const num = parseInt(val, 10);
-      if (Number.isNaN(num) || num < 0) return 0;
-      if (num > 10) return 10;
-      return num;
+    function renderClaimButtons() {
+      const pending = game.pendingClaim;
+      if (!pending) return;
+
+      const maxNum = game.cfg.wiresPerPlayer; // 2枚モードなら0〜2、3枚モードなら0〜3
+      const bombWrap = document.getElementById("claimBombBtns");
+      const codeWrap = document.getElementById("claimCodeBtns");
+      bombWrap.innerHTML = "";
+      codeWrap.innerHTML = "";
+
+      for (let num = 0; num <= maxNum; num++) {
+        const bBtn = document.createElement("button");
+        bBtn.type = "button";
+        bBtn.className = "claim-num-btn" + (pending.bombs === num ? " active" : "");
+        bBtn.textContent = `${num}`;
+        bBtn.onclick = () => {
+          pending.bombs = num;
+          renderClaimButtons();
+        };
+        bombWrap.appendChild(bBtn);
+
+        const cBtn = document.createElement("button");
+        cBtn.type = "button";
+        cBtn.className = "claim-num-btn" + (pending.codes === num ? " active" : "");
+        cBtn.textContent = `${num}`;
+        cBtn.onclick = () => {
+          pending.codes = num;
+          renderClaimButtons();
+        };
+        codeWrap.appendChild(cBtn);
+      }
     }
 
     function submitDeclaration() {
       const pending = game.pendingClaim;
       if (!pending) return;
-      const bombs = sanitizeClaimNumber(document.getElementById("claimBombInput").value);
-      const codes = sanitizeClaimNumber(document.getElementById("claimCodeInput").value);
-      applyClaimResult(pending.playerIndex, pending.timing, { bombs, codes });
+      applyClaimResult(pending.playerIndex, pending.timing, {
+        bombs: pending.bombs,
+        codes: pending.codes
+      });
     }
 
     function skipDeclaration() {
@@ -2159,15 +2197,9 @@
       wrap.innerHTML = "";
       const n = game.playerCount;
 
-      // 上段・中段(左右)・下段(逆順) の時計回りループ座標を作る
-      // 4人: 上 [0 -> 1], 下 [3 <- 2]
-      // 5人: 上 [0 -> 1 -> 2], 下 [4 <- 3]
-      // 6人: 上 [0 -> 1 -> 2], 下 [5 <- 4 <- 3]
-      // 7人: 上 [0 -> 1 -> 2], 中 [6(左)   3(右)], 下 [5 <- 4]
-      // 8人: 上 [0 -> 1 -> 2], 中 [7(左)   3(右)], 下 [6 <- 5 <- 4]
       let topIndices = [];
-      let midPairs = []; // [[leftIdx, rightIdx], ...]
-      let bottomIndices = []; // 左から右に表示する順（矢印は ⬅️）
+      let midPairs = [];
+      let bottomIndices = [];
 
       if (n === 4) {
         topIndices = [0, 1];
@@ -2188,7 +2220,7 @@
         bottomIndices = [6, 5, 4];
       }
 
-      const cols = topIndices.length; // 2 または 3
+      const cols = topIndices.length;
 
       // 上段（左 → 右）
       const topRow = document.createElement("div");
@@ -2230,7 +2262,7 @@
       }
       wrap.appendChild(vRow1);
 
-      // 中段（7人・8人用：左端と右端のみ配置、中央はループラベル）
+      // 中段（7人・8人用）
       midPairs.forEach(([leftIdx, rightIdx]) => {
         const midRow = document.createElement("div");
         midRow.className = "board-row";
@@ -2264,7 +2296,6 @@
 
         wrap.appendChild(midRow);
 
-        // 中段と下段の間の縦矢印
         const vRow2 = document.createElement("div");
         vRow2.className = "v-arrow-row";
         for (let c = 0; c < cols; c++) {
@@ -2282,8 +2313,7 @@
         wrap.appendChild(vRow2);
       });
 
-      // 下段（右 → 左 へ進むので左から順に並べて ⬅️ を挟む）
-      // 5人・7人のように下段が2人の場合も、左端(最後の席)と右端(折り返し直後の席)に配置してループを保つ
+      // 下段（右 → 左）
       const bottomRow = document.createElement("div");
       bottomRow.className = "board-row";
 
@@ -2302,7 +2332,6 @@
           }
         });
       } else {
-        // cols === 3 かつ bottomIndices.length === 2（5人・7人）の場合：左列と右列に配置し、中央に ⬅️ を表示
         const leftIdx = bottomIndices[0];
         const rightIdx = bottomIndices[1];
 
