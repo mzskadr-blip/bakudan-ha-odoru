@@ -244,7 +244,7 @@
       font-size: 0.85rem;
     }
 
-    /* ② みんなの盤面エリア */
+    /* ② みんなの盤面エリア（時計回りループ配置） */
     .zone-board {
       flex: 1;
       padding: 12px 14px;
@@ -260,16 +260,83 @@
       gap: 6px;
     }
 
-    .players-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
+    .clockwise-board {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    @media (min-width: 768px) {
-      .players-grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
+    .board-row {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .board-slot {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+    }
+
+    .board-slot > .player-card {
+      width: 100%;
+    }
+
+    .board-slot.empty-slot {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .h-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: var(--accent);
+      padding: 0 2px;
+      flex-shrink: 0;
+      text-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+    }
+
+    .h-arrow.invisible {
+      visibility: hidden;
+    }
+
+    .v-arrow-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 2px 0;
+    }
+
+    .v-arrow-cell {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      font-weight: 900;
+      color: var(--accent);
+      text-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+    }
+
+    .v-arrow-spacer {
+      width: 24px;
+      flex-shrink: 0;
+    }
+
+    .loop-center-tag {
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: var(--muted);
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px dashed var(--border);
+      border-radius: 999px;
+      padding: 2px 10px;
+      white-space: nowrap;
     }
 
     .player-card {
@@ -301,7 +368,7 @@
 
     .seat-name {
       font-weight: 700;
-      font-size: 0.92rem;
+      font-size: 0.9rem;
       display: flex;
       align-items: center;
       gap: 5px;
@@ -314,12 +381,13 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 20px;
-      height: 20px;
+      width: 21px;
+      height: 21px;
       border-radius: 50%;
-      background: var(--panel-2);
-      font-size: 0.75rem;
-      font-weight: 800;
+      background: var(--accent);
+      color: #082f49;
+      font-size: 0.78rem;
+      font-weight: 900;
       flex-shrink: 0;
     }
 
@@ -330,7 +398,7 @@
       gap: 6px;
       margin-bottom: 8px;
       min-height: 24px;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
     }
 
     .role-tag {
@@ -358,24 +426,24 @@
 
     .wires-row {
       display: flex;
-      gap: 6px;
+      gap: 5px;
       margin-bottom: 8px;
     }
 
     .wire-slot {
       flex: 1;
-      height: 62px;
+      height: 58px;
       border-radius: 10px;
       border: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       font-weight: 700;
       position: relative;
       text-align: center;
-      padding: 4px;
+      padding: 3px;
     }
 
     .wire-hidden {
@@ -415,8 +483,8 @@
 
     .memo-badge {
       margin-top: 3px;
-      font-size: 0.68rem;
-      padding: 1px 5px;
+      font-size: 0.65rem;
+      padding: 1px 4px;
       border-radius: 5px;
       background: rgba(15, 23, 42, 0.85);
       border: 1px solid rgba(255, 255, 255, 0.2);
@@ -427,7 +495,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       color: var(--muted);
     }
 
@@ -442,7 +510,7 @@
       border-radius: 8px;
       background: rgba(15, 23, 42, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 0.71rem;
+      font-size: 0.7rem;
       color: #cbd5e1;
       line-height: 1.35;
     }
@@ -744,7 +812,7 @@
       </div>
     </header>
 
-    <!-- ② みんなの盤面エリア -->
+    <!-- ② みんなの盤面エリア（時計回りループ配置） -->
     <main class="zone-board">
       <div id="discussionBanner" class="discussion-banner" style="display: none;">
         <div id="discussionBannerText">議論タイム中です。</div>
@@ -752,10 +820,10 @@
       </div>
 
       <div class="board-hint">
-        <span id="turnGuideText">現在の手番：プレイヤー①</span>
-        <span>※テスト用：各カードの「視点切替」でその人の手札画面を表示できます</span>
+        <span id="turnGuideText">現在の手番：① プレイヤー1</span>
+        <span>矢印の向き（時計回り）に手番＆「配線のすり替え」の隣が決まります</span>
       </div>
-      <div id="playersGrid" class="players-grid"></div>
+      <div id="playersBoardWrap" class="clockwise-board"></div>
     </main>
 
     <!-- ③ 行動ログ -->
@@ -771,7 +839,7 @@
     <footer class="zone-hand">
       <div class="hand-top-bar">
         <div>
-          <strong id="viewingPlayerLabel">視点：プレイヤー①</strong>
+          <strong id="viewingPlayerLabel">視点：① プレイヤー1</strong>
           <span id="viewingPlayerRoleHint" style="margin-left: 8px; font-size: 0.8rem;"></span>
         </div>
         <div id="handSubInfo" style="font-size: 0.78rem; color: var(--muted);"></div>
@@ -874,6 +942,12 @@
   </div>
 
   <script>
+    const CIRCLED_NUMS = ["①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧"];
+
+    function seatMark(idx) {
+      return CIRCLED_NUMS[idx] || `#${idx + 1}`;
+    }
+
     // 1. カード定義（全31枚）
     const ACTION_DECK_SPEC = [
       { id: "cut", name: "カット", type: "cut", count: 8, desc: "自分以外の裏向き導線1枚を表向きにする。" },
@@ -986,7 +1060,7 @@
         const input = document.createElement("input");
         input.type = "text";
         input.value = setupState.names[i] || `プレイヤー${i + 1}`;
-        input.placeholder = `プレイヤー${i + 1}`;
+        input.placeholder = `${seatMark(i)} プレイヤー${i + 1}`;
         input.oninput = (e) => {
           setupState.names[i] = e.target.value.trim() || `プレイヤー${i + 1}`;
         };
@@ -1080,8 +1154,8 @@
         turnIndex: 0,
         turnsInCurrentLap: 0,
         lap: 1, // 1, 2, 3
-        discussionAfterLap: null, // 0: 開始前, 1: 1周目終了後, 2: 2周目終了後
-        phase: "initial_peek", // "initial_peek" | "discussion" | "action" | "ended"
+        discussionAfterLap: null,
+        phase: "initial_peek",
         peekedInitial: players.map(() => false),
         revealedCodes: 0,
         viewingPlayerIndex: 0,
@@ -1195,7 +1269,7 @@
       game.peekQueue = [{
         kind: "initial",
         playerIndex: playerIdx,
-        title: `初期導線確認：${p.name}（席順${playerIdx + 1}）`,
+        title: `初期導線確認：${seatMark(playerIdx)} ${p.name}`,
         subtitle: "自分の導線を確認したら「OK」を押してください（他の人には見えません）。",
         items: p.wires.map((w, idx) => `導線${idx + 1}：${WIRE_LABELS[w.kind]}`)
       }];
@@ -1216,7 +1290,7 @@
       game.peekQueue = [{
         kind: "lap1_end",
         playerIndex: p.index,
-        title: `1周目終了時の場札確認：${p.name}（席順${p.index + 1}）`,
+        title: `1周目終了時の場札確認：${seatMark(p.index)} ${p.name}`,
         subtitle: "現在の自分の場札を確認したら「OK」を押してください（その後、自己申告を入力できます）。",
         items
       }];
@@ -1252,7 +1326,7 @@
         const idx = current.playerIndex;
         game.peekedInitial[idx] = true;
         game.players[idx].wires = shuffleArray(game.players[idx].wires);
-        addLog(`${game.players[idx].name} が初期導線を確認して並べ直しました。`, false);
+        addLog(`${seatMark(idx)}${game.players[idx].name} が初期導線を確認して並べ直しました。`, false);
 
         closeModal("peekModal");
         openClaimModal(idx, "initial");
@@ -1263,7 +1337,7 @@
       if (current.kind === "lap1_end") {
         const idx = current.playerIndex;
         game.players[idx].usedLap1EndCheck = true;
-        addLog(`${game.players[idx].name} が1周目終了時に自分の場札を確認しました。`, false);
+        addLog(`${seatMark(idx)}${game.players[idx].name} が1周目終了時に自分の場札を確認しました。`, false);
 
         closeModal("peekModal");
         openClaimModal(idx, "lap1_end");
@@ -1290,7 +1364,7 @@
       const timingLabel = timing === "initial" ? "初期確認後" : "1周目終了時の確認後";
       document.getElementById("claimTitle").textContent = `自己申告の入力（${timingLabel}・嘘も可）`;
       document.getElementById("claimSubtitle").textContent =
-        `${p.name}（席順${playerIdx + 1}）の自己申告を入力してください。実際の枚数と違っていても構いません（ブラフOK）。`;
+        `${seatMark(playerIdx)} ${p.name} の自己申告を入力してください。実際の枚数と違っていても構いません（ブラフOK）。`;
 
       const prevClaim = timing === "initial" ? p.initialClaim : p.lap1EndClaim;
       document.getElementById("claimBombInput").value = prevClaim ? prevClaim.bombs : 0;
@@ -1327,9 +1401,9 @@
       if (timing === "initial") {
         p.initialClaim = claimData;
         if (claimData) {
-          addLog(`【初期申告】${p.name}：爆弾 ${claimData.bombs}個 / 解除コード ${claimData.codes}個`, false);
+          addLog(`【初期申告】${seatMark(playerIdx)}${p.name}：爆弾 ${claimData.bombs}個 / 解除コード ${claimData.codes}個`, false);
         } else {
-          addLog(`【初期申告】${p.name}：申告なし`, false);
+          addLog(`【初期申告】${seatMark(playerIdx)}${p.name}：申告なし`, false);
         }
 
         const nextUnpeeked = game.peekedInitial.findIndex((done) => !done);
@@ -1350,9 +1424,9 @@
       if (timing === "lap1_end") {
         p.lap1EndClaim = claimData;
         if (claimData) {
-          addLog(`【1周目終了時 申告】${p.name}：爆弾 ${claimData.bombs}個 / 解除コード ${claimData.codes}個`, false);
+          addLog(`【1周目終了時 申告】${seatMark(playerIdx)}${p.name}：爆弾 ${claimData.bombs}個 / 解除コード ${claimData.codes}個`, false);
         } else {
-          addLog(`【1周目終了時 申告】${p.name}：申告なし`, false);
+          addLog(`【1周目終了時 申告】${seatMark(playerIdx)}${p.name}：申告なし`, false);
         }
         renderAll();
       }
@@ -1371,7 +1445,7 @@
       if (!game || game.phase !== "action" || game.winner) return;
       const actor = game.players[game.turnIndex];
       if (game.viewingPlayerIndex !== actor.index) {
-        addLog(`現在は ${actor.name} の手番です。視点を ${actor.name} に合わせて操作してください。`, true);
+        addLog(`現在は ${seatMark(actor.index)}${actor.name} の手番です。視点を合わせて操作してください。`, true);
         renderAll();
         return;
       }
@@ -1534,10 +1608,10 @@
       return w;
     }
 
-    function checkImmediateWinAfterWireReveal(w, actorName, targetName) {
+    function checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel) {
       if (!w) return false;
       if (w.kind === "bomb") {
-        endGame("bomber", `${actorName} が ${targetName} の導線をカットし、【時限爆弾】が爆発しました！`);
+        endGame("bomber", `${actorLabel} が ${targetLabel} の導線をカットし、【時限爆弾】が爆発しました！`);
         return true;
       }
       if (game.revealedCodes >= game.cfg.winCodes) {
@@ -1552,16 +1626,18 @@
       if (!canExecute(spec)) return;
 
       const actor = game.players[game.turnIndex];
+      const actorLabel = `${seatMark(actor.index)}${actor.name}`;
 
       // 基本カット
       if (spec.mode === "basic_cut") {
         actor.hand.pop();
         const t = game.selectedTargets[0];
         const targetPlayer = game.players[t.playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         const w = revealWire(t.playerIdx, t.wireId, true);
-        addLog(`${actor.name} が手札を1枚捨てて基本カットを実行 → ${targetPlayer.name} の導線は【${WIRE_LABELS[w.kind]}】！`, false);
+        addLog(`${actorLabel} が手札を1枚捨てて基本カットを実行 → ${targetLabel} の導線は【${WIRE_LABELS[w.kind]}】！`, false);
         clearSelection();
-        if (!checkImmediateWinAfterWireReveal(w, actor.name, targetPlayer.name)) {
+        if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
           advanceTurn();
         }
         renderAll();
@@ -1576,10 +1652,11 @@
       if (usedCard.type === "cut") {
         const t = game.selectedTargets[0];
         const targetPlayer = game.players[t.playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         const w = revealWire(t.playerIdx, t.wireId, true);
-        addLog(`${actor.name} が「カット」を使用 → ${targetPlayer.name} の導線は【${WIRE_LABELS[w.kind]}】！`, false);
+        addLog(`${actorLabel} が「カット」を使用 → ${targetLabel} の導線は【${WIRE_LABELS[w.kind]}】！`, false);
         clearSelection();
-        if (!checkImmediateWinAfterWireReveal(w, actor.name, targetPlayer.name)) {
+        if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
           advanceTurn();
         }
         renderAll();
@@ -1588,15 +1665,16 @@
 
       // 2. ダブル・カット
       if (usedCard.type === "double_cut") {
-        addLog(`${actor.name} が「ダブル・カット」を使用（${game.selectedTargets.length}枚選択）。`, false);
+        addLog(`${actorLabel} が「ダブル・カット」を使用（${game.selectedTargets.length}枚選択）。`, false);
         const targetsCopy = [...game.selectedTargets];
         clearSelection();
         for (const t of targetsCopy) {
           const targetPlayer = game.players[t.playerIdx];
+          const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
           const w = revealWire(t.playerIdx, t.wireId, true);
           if (!w) continue;
-          addLog(`→ ${targetPlayer.name} の導線から【${WIRE_LABELS[w.kind]}】が出現！`, false);
-          if (checkImmediateWinAfterWireReveal(w, actor.name, targetPlayer.name)) {
+          addLog(`→ ${targetLabel} の導線から【${WIRE_LABELS[w.kind]}】が出現！`, false);
+          if (checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
             renderAll();
             return;
           }
@@ -1610,15 +1688,16 @@
       if (usedCard.type === "thermo") {
         const t = game.selectedTargets[0];
         const targetPlayer = game.players[t.playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         const w = targetPlayer.wires.find((item) => item.id === t.wireId);
         actor.memosByViewer[w.id] = w.kind;
-        addLog(`${actor.name} が ${targetPlayer.name} の導線1枚に「サーモグラフィ」を使用（本人確認中）。`, false);
-        addLog(`【秘密】${targetPlayer.name} の導線は【${WIRE_LABELS[w.kind]}】でした。`, true);
+        addLog(`${actorLabel} が ${targetLabel} の導線1枚に「サーモグラフィ」を使用（本人確認中）。`, false);
+        addLog(`【秘密】${targetLabel} の導線は【${WIRE_LABELS[w.kind]}】でした。`, true);
         clearSelection();
         enqueuePeek({
           kind: "thermo",
-          title: `サーモグラフィ結果（${actor.name} のみ表示）`,
-          subtitle: `${targetPlayer.name} の選択した導線の中身です。確認したらOKを押してください。`,
+          title: `サーモグラフィ結果（${actorLabel} のみ表示）`,
+          subtitle: `${targetLabel} の選択した導線の中身です。確認したらOKを押してください。`,
           items: [`【${WIRE_LABELS[w.kind]}】`]
         });
         renderAll();
@@ -1628,14 +1707,15 @@
       // 4. 盗聴器
       if (usedCard.type === "wiretap") {
         const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         const names = targetPlayer.hand.map((c) => c.name);
-        addLog(`${actor.name} が ${targetPlayer.name} に「盗聴器」を使用（本人確認中）。`, false);
-        addLog(`【秘密】${targetPlayer.name} の手札：${names.length ? names.join(" / ") : "なし"}`, true);
+        addLog(`${actorLabel} が ${targetLabel} に「盗聴器」を使用（本人確認中）。`, false);
+        addLog(`【秘密】${targetLabel} の手札：${names.length ? names.join(" / ") : "なし"}`, true);
         clearSelection();
         enqueuePeek({
           kind: "wiretap",
-          title: `盗聴器結果（${actor.name} のみ表示）`,
-          subtitle: `${targetPlayer.name} の現在のアクション手札一覧です。`,
+          title: `盗聴器結果（${actorLabel} のみ表示）`,
+          subtitle: `${targetLabel} の現在のアクション手札一覧です。`,
           items: names.length ? names : ["手札なし"]
         });
         renderAll();
@@ -1646,6 +1726,7 @@
       if (usedCard.type === "swap_wire") {
         const t = game.selectedTargets[0];
         const targetPlayer = game.players[t.playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         const myUnrevealedIdx = actor.wires.findIndex((w) => !w.revealed);
         const targetWireIdx = targetPlayer.wires.findIndex((w) => w.id === t.wireId);
         if (myUnrevealedIdx !== -1 && targetWireIdx !== -1) {
@@ -1655,7 +1736,7 @@
           delete actor.memosByViewer[actor.wires[myUnrevealedIdx].id];
           delete targetPlayer.memosByViewer[targetPlayer.wires[targetWireIdx].id];
         }
-        addLog(`${actor.name} が「配線のすり替え」で ${targetPlayer.name} と裏向き導線を1枚交換しました。`, false);
+        addLog(`${actorLabel} が「配線のすり替え」で ${targetLabel} と裏向き導線を1枚交換しました。`, false);
         clearSelection();
         advanceTurn();
         renderAll();
@@ -1665,11 +1746,12 @@
       // 6. 緊急シャッフル
       if (usedCard.type === "shuffle_wire") {
         const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         targetPlayer.wires = shuffleArray(targetPlayer.wires);
         targetPlayer.wires.forEach((w) => {
           if (!w.revealed) delete actor.memosByViewer[w.id];
         });
-        addLog(`${actor.name} が ${targetPlayer.name} の導線を「緊急シャッフル」で混ぜ直しました。`, false);
+        addLog(`${actorLabel} が ${targetLabel} の導線を「緊急シャッフル」で混ぜ直しました。`, false);
         clearSelection();
         advanceTurn();
         renderAll();
@@ -1679,8 +1761,9 @@
       // 7. スリ
       if (usedCard.type === "surik") {
         const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         if (targetPlayer.hand.length === 0) {
-          addLog(`${actor.name} が ${targetPlayer.name} に「スリ」を使いましたが、相手の手札がありませんでした。`, false);
+          addLog(`${actorLabel} が ${targetLabel} に「スリ」を使いましたが、相手の手札がありませんでした。`, false);
           clearSelection();
           advanceTurn();
           renderAll();
@@ -1696,7 +1779,7 @@
           stolenCard,
           selectedGiveUid: null
         };
-        addLog(`${actor.name} が ${targetPlayer.name} に「スリ」を実行（渡すカードを選択中）。`, false);
+        addLog(`${actorLabel} が ${targetLabel} に「スリ」を実行（渡すカードを選択中）。`, false);
         clearSelection();
         openSurikModal();
         renderAll();
@@ -1706,8 +1789,9 @@
       // 8. うわさ
       if (usedCard.type === "rumor") {
         const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         if (actor.hand.length === 0 || targetPlayer.hand.length === 0) {
-          addLog(`${actor.name} と ${targetPlayer.name} が「うわさ」を試みましたが、手札不足で交換できませんでした。`, false);
+          addLog(`${actorLabel} と ${targetLabel} が「うわさ」を試みましたが、手札不足で交換できませんでした。`, false);
         } else {
           const myRand = Math.floor(Math.random() * actor.hand.length);
           const theirRand = Math.floor(Math.random() * targetPlayer.hand.length);
@@ -1715,7 +1799,7 @@
           const [fromThem] = targetPlayer.hand.splice(theirRand, 1);
           actor.hand.push(fromThem);
           targetPlayer.hand.push(fromMe);
-          addLog(`${actor.name} が ${targetPlayer.name} に「うわさ」を使用！お互いの手札からランダムに1枚ずつ強制交換しました。`, false);
+          addLog(`${actorLabel} が ${targetLabel} に「うわさ」を使用！お互いの手札からランダムに1枚ずつ強制交換しました。`, false);
         }
         clearSelection();
         advanceTurn();
@@ -1727,16 +1811,17 @@
       if (usedCard.type === "dog") {
         const t = game.selectedTargets[0];
         const targetPlayer = game.players[t.playerIdx];
+        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         if (t.kind === "hand") {
           const pickedCard = targetPlayer.hand[t.handIndex];
           if (pickedCard && pickedCard.type === "detonator") {
-            addLog(`${actor.name} が「警察犬」で ${targetPlayer.name} の手札から【起爆スイッチ】を探知！`, false);
+            addLog(`${actorLabel} が「警察犬」で ${targetLabel} の手札から【起爆スイッチ】を探知！`, false);
             endGame("cop", `警察犬が【起爆スイッチ】を嗅ぎ当て、捜査官チームの勝利となりました！`);
             clearSelection();
             renderAll();
             return;
           }
-          addLog(`${actor.name} が「警察犬」で ${targetPlayer.name} の手札を調べましたが、起爆スイッチではありませんでした（手札は元に戻ります）。`, false);
+          addLog(`${actorLabel} が「警察犬」で ${targetLabel} の手札を調べましたが、起爆スイッチではありませんでした（手札は元に戻ります）。`, false);
           clearSelection();
           advanceTurn();
           renderAll();
@@ -1744,15 +1829,15 @@
         } else {
           const w = revealWire(t.playerIdx, t.wireId, true);
           if (w && w.kind === "bomb") {
-            addLog(`${actor.name} が「警察犬」で ${targetPlayer.name} の導線から【時限爆弾】を探知！`, false);
+            addLog(`${actorLabel} が「警察犬」で ${targetLabel} の導線から【時限爆弾】を探知！`, false);
             endGame("cop", `警察犬が【時限爆弾】を嗅ぎ当て、爆発を防ぐことに成功！捜査官チームの勝利です！`);
             clearSelection();
             renderAll();
             return;
           }
-          addLog(`${actor.name} が「警察犬」で ${targetPlayer.name} の導線を調べましたが、爆弾ではありませんでした（【${WIRE_LABELS[w.kind]}】を表向きにしました）。`, false);
+          addLog(`${actorLabel} が「警察犬」で ${targetLabel} の導線を調べましたが、爆弾ではありませんでした（【${WIRE_LABELS[w.kind]}】を表向きにしました）。`, false);
           clearSelection();
-          if (!checkImmediateWinAfterWireReveal(w, actor.name, targetPlayer.name)) {
+          if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
             advanceTurn();
           }
           renderAll();
@@ -1763,7 +1848,7 @@
       // 10. 内通者の密書
       if (usedCard.type === "mole") {
         actor.role = "bomber";
-        addLog(`${actor.name} が「内通者の密書」を使用！陣営が「爆弾魔」になりました。`, false);
+        addLog(`${actorLabel} が「内通者の密書」を使用！陣営が「爆弾魔」になりました。`, false);
         clearSelection();
         advanceTurn();
         renderAll();
@@ -1773,10 +1858,10 @@
       // 11. 解除成功
       if (usedCard.type === "defuse_key") {
         if (actor.role === "cop") {
-          addLog(`${actor.name} が最後の1枚「解除成功」を発動！`, false);
-          endGame("cop", `${actor.name}（捜査官）が最後の1枚「解除成功」を発動し、捜査官チームの勝利！`);
+          addLog(`${actorLabel} が最後の1枚「解除成功」を発動！`, false);
+          endGame("cop", `${actorLabel}（捜査官）が最後の1枚「解除成功」を発動し、捜査官チームの勝利！`);
         } else {
-          addLog(`${actor.name} が「解除成功」を出しましたが、爆弾魔のため効果がありませんでした！`, false);
+          addLog(`${actorLabel} が「解除成功」を出しましたが、爆弾魔のため効果がありませんでした！`, false);
           clearSelection();
           advanceTurn();
         }
@@ -1787,10 +1872,10 @@
       // 12. 起爆スイッチ
       if (usedCard.type === "detonator") {
         if (actor.role === "bomber") {
-          addLog(`${actor.name} が最後の1枚「起爆スイッチ」を発動！`, false);
-          endGame("bomber", `${actor.name}（爆弾魔）が最後の1枚「起爆スイッチ」を発動し、爆弾魔チームの勝利！`);
+          addLog(`${actorLabel} が最後の1枚「起爆スイッチ」を発動！`, false);
+          endGame("bomber", `${actorLabel}（爆弾魔）が最後の1枚「起爆スイッチ」を発動し、爆弾魔チームの勝利！`);
         } else {
-          addLog(`${actor.name} が「起爆スイッチ」を出しましたが、捜査官のため効果がありませんでした！`, false);
+          addLog(`${actorLabel} が「起爆スイッチ」を出しましたが、捜査官のため効果がありませんでした！`, false);
           clearSelection();
           advanceTurn();
         }
@@ -1805,7 +1890,7 @@
       const actor = game.players[s.actorIndex];
       const target = game.players[s.targetIndex];
       document.getElementById("surikDesc").textContent =
-        `${actor.name} は ${target.name} から「${s.stolenCard.name}」を引きました。${target.name} に渡すカードを自分の手札から1枚選んでください。`;
+        `${seatMark(actor.index)}${actor.name} は ${seatMark(target.index)}${target.name} から「${s.stolenCard.name}」を引きました。渡すカードを自分の手札から1枚選んでください。`;
       document.getElementById("surikStolenBox").innerHTML =
         `獲得したカード：<span class="chip">${s.stolenCard.name}</span>`;
 
@@ -1840,7 +1925,7 @@
       if (idx !== -1) {
         const [given] = actor.hand.splice(idx, 1);
         target.hand.push(given);
-        addLog(`${actor.name} が ${target.name} から1枚奪い、${target.name} にカードを1枚渡しました。`, false);
+        addLog(`${seatMark(actor.index)}${actor.name} が ${seatMark(target.index)}${target.name} から1枚奪い、カードを1枚渡しました。`, false);
       }
       game.pendingSurik = null;
       closeModal("surikModal");
@@ -1928,7 +2013,7 @@
         const wiresText = p.wires.map((w, i) => `導線${i + 1}:【${WIRE_LABELS[w.kind]}】`).join(" / ");
         rowsHtml += `
           <tr>
-            <td><strong>#${p.index + 1} ${p.name}</strong></td>
+            <td><strong>${seatMark(p.index)} ${p.name}</strong></td>
             <td>${initLabel}</td>
             <td><strong>${finalLabel}</strong>${changed}</td>
             <td>${claimStr}</td>
@@ -1970,16 +2055,299 @@
       renderAll();
     }
 
+    // プレイヤーカードHTML生成
+    function buildPlayerCardElement(p, idx, spec) {
+      const cardEl = document.createElement("div");
+      const isTurn = game.phase === "action" && idx === game.turnIndex;
+      const canSelectPlayer =
+        game.phase === "action" &&
+        spec &&
+        spec.needPlayerTarget &&
+        (spec.allowSelfPlayer || idx !== game.turnIndex);
+
+      cardEl.className =
+        "player-card" +
+        (isTurn ? " active-turn" : "") +
+        (canSelectPlayer ? " selectable-target" : "");
+
+      if (canSelectPlayer) {
+        cardEl.onclick = () => onPlayerCardClick(idx);
+      }
+
+      const roleHtml = p.roleVisible
+        ? `<span class="role-tag ${p.role === "cop" ? "role-cop" : "role-bomber"}">${p.role === "cop" ? "捜査官" : "爆弾魔"}</span>`
+        : `<span class="role-tag role-hidden">役職非表示</span>`;
+
+      const wiresHtml = p.wires
+        .map((w, wIdx) => {
+          let cls = "wire-slot ";
+          let label = `導線${wIdx + 1}`;
+          let pickable = false;
+
+          if (w.revealed) {
+            if (w.kind === "code") {
+              cls += "wire-revealed-code";
+              label = "解除コード";
+            } else if (w.kind === "bomb") {
+              cls += "wire-revealed-bomb";
+              label = "時限爆弾";
+            } else {
+              cls += "wire-revealed-safe";
+              label = "安全";
+            }
+          } else {
+            cls += "wire-hidden";
+            if (game.phase === "action" && spec) {
+              if (spec.needWireTarget) {
+                const okSelf = spec.allowSelfWire || idx !== game.turnIndex;
+                const okAdj = !spec.onlyAdjacentWire || isAdjacentPlayer(game.turnIndex, idx);
+                if (okSelf && okAdj) pickable = true;
+              } else if (spec.needDogTarget && idx !== game.turnIndex) {
+                pickable = true;
+              }
+            }
+            if (pickable) cls += " pickable";
+            const isSelected = game.selectedTargets.some((t) => t.wireId === w.id);
+            if (isSelected) cls += " selected";
+          }
+
+          const viewer = game.players[game.viewingPlayerIndex];
+          const memoKind = !w.revealed && viewer ? viewer.memosByViewer[w.id] : null;
+          const memoHtml = memoKind ? `<span class="memo-badge">🔍${WIRE_LABELS[memoKind]}</span>` : "";
+
+          const clickAttr = pickable ? `onclick="event.stopPropagation(); onWireClick(${idx}, ${wIdx})"` : "";
+          return `<div class="${cls}" ${clickAttr}><span>${label}</span>${memoHtml}</div>`;
+        })
+        .join("");
+
+      const canDogHand =
+        game.phase === "action" && spec && spec.needDogTarget && idx !== game.turnIndex && p.hand.length > 0;
+
+      const c1Text = p.initialClaim ? `初期申告：爆${p.initialClaim.bombs} / 解${p.initialClaim.codes}` : "初期申告：未入力";
+      const c2Text = p.lap1EndClaim ? `1周後申告：爆${p.lap1EndClaim.bombs} / 解${p.lap1EndClaim.codes}` : "";
+      const claimHtml = `<div class="claim-box">${c1Text}${c2Text ? `<br/>${c2Text}` : ""}</div>`;
+
+      cardEl.innerHTML = `
+        <div class="player-top">
+          <div class="seat-name">
+            <span class="seat-num">${idx + 1}</span>
+            <span>${p.name}</span>
+          </div>
+          <button type="button" style="padding: 3px 6px; font-size: 0.7rem;" onclick="event.stopPropagation(); switchViewTo(${idx})">
+            視点
+          </button>
+        </div>
+        <div class="role-row">
+          ${roleHtml}
+          <button type="button" style="padding: 2px 6px; font-size: 0.68rem;" onclick="event.stopPropagation(); toggleRoleVisibility(${idx})">
+            ${p.roleVisible ? "隠す" : "表示"}
+          </button>
+        </div>
+        <div class="wires-row">${wiresHtml}</div>
+        <div class="player-meta">
+          <span>手札：<strong>${p.hand.length}</strong>枚 ${p.hand.length === 1 ? '<span class="last-card-pill">★ラスト1</span>' : ""}</span>
+          ${canDogHand ? `<button type="button" class="warn" style="padding: 2px 6px; font-size: 0.7rem;" onclick="event.stopPropagation(); pickDogHandTarget(${idx})">犬で手札</button>` : ""}
+        </div>
+        ${claimHtml}
+      `;
+      return cardEl;
+    }
+
+    // 時計回りループ盤面の描画（4〜8人すべて環状矢印付きで配置）
+    function renderClockwiseBoard(spec) {
+      const wrap = document.getElementById("playersBoardWrap");
+      wrap.innerHTML = "";
+      const n = game.playerCount;
+
+      // 上段・中段(左右)・下段(逆順) の時計回りループ座標を作る
+      // 4人: 上 [0 -> 1], 下 [3 <- 2]
+      // 5人: 上 [0 -> 1 -> 2], 下 [4 <- 3]
+      // 6人: 上 [0 -> 1 -> 2], 下 [5 <- 4 <- 3]
+      // 7人: 上 [0 -> 1 -> 2], 中 [6(左)   3(右)], 下 [5 <- 4]
+      // 8人: 上 [0 -> 1 -> 2], 中 [7(左)   3(右)], 下 [6 <- 5 <- 4]
+      let topIndices = [];
+      let midPairs = []; // [[leftIdx, rightIdx], ...]
+      let bottomIndices = []; // 左から右に表示する順（矢印は ⬅️）
+
+      if (n === 4) {
+        topIndices = [0, 1];
+        bottomIndices = [3, 2];
+      } else if (n === 5) {
+        topIndices = [0, 1, 2];
+        bottomIndices = [4, 3];
+      } else if (n === 6) {
+        topIndices = [0, 1, 2];
+        bottomIndices = [5, 4, 3];
+      } else if (n === 7) {
+        topIndices = [0, 1, 2];
+        midPairs = [[6, 3]];
+        bottomIndices = [5, 4];
+      } else {
+        topIndices = [0, 1, 2];
+        midPairs = [[7, 3]];
+        bottomIndices = [6, 5, 4];
+      }
+
+      const cols = topIndices.length; // 2 または 3
+
+      // 上段（左 → 右）
+      const topRow = document.createElement("div");
+      topRow.className = "board-row";
+      topIndices.forEach((pIdx, pos) => {
+        const slot = document.createElement("div");
+        slot.className = "board-slot";
+        slot.appendChild(buildPlayerCardElement(game.players[pIdx], pIdx, spec));
+        topRow.appendChild(slot);
+
+        if (pos < cols - 1) {
+          const arrow = document.createElement("div");
+          arrow.className = "h-arrow";
+          arrow.textContent = "➡️";
+          topRow.appendChild(arrow);
+        }
+      });
+      wrap.appendChild(topRow);
+
+      // 上段と次の段の間の縦矢印（左端は ⬆️、右端は ⬇️）
+      const vRow1 = document.createElement("div");
+      vRow1.className = "v-arrow-row";
+      for (let c = 0; c < cols; c++) {
+        const cell = document.createElement("div");
+        cell.className = "v-arrow-cell";
+        if (c === 0) {
+          cell.textContent = "⬆️";
+        } else if (c === cols - 1) {
+          cell.textContent = "⬇️";
+        } else {
+          cell.innerHTML = `<span class="loop-center-tag">↻ 時計回り</span>`;
+        }
+        vRow1.appendChild(cell);
+        if (c < cols - 1) {
+          const sp = document.createElement("div");
+          sp.className = "v-arrow-spacer";
+          vRow1.appendChild(sp);
+        }
+      }
+      wrap.appendChild(vRow1);
+
+      // 中段（7人・8人用：左端と右端のみ配置、中央はループラベル）
+      midPairs.forEach(([leftIdx, rightIdx]) => {
+        const midRow = document.createElement("div");
+        midRow.className = "board-row";
+
+        const leftSlot = document.createElement("div");
+        leftSlot.className = "board-slot";
+        leftSlot.appendChild(buildPlayerCardElement(game.players[leftIdx], leftIdx, spec));
+        midRow.appendChild(leftSlot);
+
+        const sp1 = document.createElement("div");
+        sp1.className = "h-arrow invisible";
+        sp1.textContent = "➡️";
+        midRow.appendChild(sp1);
+
+        const centerSlot = document.createElement("div");
+        centerSlot.className = "board-slot";
+        centerSlot.style.alignItems = "center";
+        centerSlot.style.justifyContent = "center";
+        centerSlot.innerHTML = `<span class="loop-center-tag">↻ 時計回り進行</span>`;
+        midRow.appendChild(centerSlot);
+
+        const sp2 = document.createElement("div");
+        sp2.className = "h-arrow invisible";
+        sp2.textContent = "➡️";
+        midRow.appendChild(sp2);
+
+        const rightSlot = document.createElement("div");
+        rightSlot.className = "board-slot";
+        rightSlot.appendChild(buildPlayerCardElement(game.players[rightIdx], rightIdx, spec));
+        midRow.appendChild(rightSlot);
+
+        wrap.appendChild(midRow);
+
+        // 中段と下段の間の縦矢印
+        const vRow2 = document.createElement("div");
+        vRow2.className = "v-arrow-row";
+        for (let c = 0; c < cols; c++) {
+          const cell = document.createElement("div");
+          cell.className = "v-arrow-cell";
+          if (c === 0) cell.textContent = "⬆️";
+          else if (c === cols - 1) cell.textContent = "⬇️";
+          vRow2.appendChild(cell);
+          if (c < cols - 1) {
+            const sp = document.createElement("div");
+            sp.className = "v-arrow-spacer";
+            vRow2.appendChild(sp);
+          }
+        }
+        wrap.appendChild(vRow2);
+      });
+
+      // 下段（右 → 左 へ進むので左から順に並べて ⬅️ を挟む）
+      // 5人・7人のように下段が2人の場合も、左端(最後の席)と右端(折り返し直後の席)に配置してループを保つ
+      const bottomRow = document.createElement("div");
+      bottomRow.className = "board-row";
+
+      if (bottomIndices.length === cols) {
+        bottomIndices.forEach((pIdx, pos) => {
+          const slot = document.createElement("div");
+          slot.className = "board-slot";
+          slot.appendChild(buildPlayerCardElement(game.players[pIdx], pIdx, spec));
+          bottomRow.appendChild(slot);
+
+          if (pos < cols - 1) {
+            const arrow = document.createElement("div");
+            arrow.className = "h-arrow";
+            arrow.textContent = "⬅️";
+            bottomRow.appendChild(arrow);
+          }
+        });
+      } else {
+        // cols === 3 かつ bottomIndices.length === 2（5人・7人）の場合：左列と右列に配置し、中央に ⬅️ を表示
+        const leftIdx = bottomIndices[0];
+        const rightIdx = bottomIndices[1];
+
+        const leftSlot = document.createElement("div");
+        leftSlot.className = "board-slot";
+        leftSlot.appendChild(buildPlayerCardElement(game.players[leftIdx], leftIdx, spec));
+        bottomRow.appendChild(leftSlot);
+
+        const a1 = document.createElement("div");
+        a1.className = "h-arrow";
+        a1.textContent = "⬅️";
+        bottomRow.appendChild(a1);
+
+        const midBridge = document.createElement("div");
+        midBridge.className = "board-slot";
+        midBridge.style.alignItems = "center";
+        midBridge.style.justifyContent = "center";
+        midBridge.innerHTML = `<span class="h-arrow">⬅️ ⬅️</span>`;
+        bottomRow.appendChild(midBridge);
+
+        const a2 = document.createElement("div");
+        a2.className = "h-arrow";
+        a2.textContent = "⬅️";
+        bottomRow.appendChild(a2);
+
+        const rightSlot = document.createElement("div");
+        rightSlot.className = "board-slot";
+        rightSlot.appendChild(buildPlayerCardElement(game.players[rightIdx], rightIdx, spec));
+        bottomRow.appendChild(rightSlot);
+      }
+
+      wrap.appendChild(bottomRow);
+    }
+
     // 描画処理
     function renderAll() {
       if (!game) return;
 
       // ① ヘッダー
       document.getElementById("roundBadge").textContent = `${game.lap}周目 / 全3周`;
+      const actor = game.players[game.turnIndex];
       const phaseMap = {
         initial_peek: "初期確認・申告中",
         discussion: "議論タイム",
-        action: `${game.players[game.turnIndex].name} の手番`,
+        action: `${seatMark(actor.index)}${actor.name} の手番`,
         ended: "ゲーム終了"
       };
       document.getElementById("phaseBadge").textContent = phaseMap[game.phase] || game.phase;
@@ -1997,11 +2365,11 @@
         bannerEl.style.display = "flex";
         const viewer = game.players[game.viewingPlayerIndex];
         if (game.mode === "standard" && game.discussionAfterLap === 1) {
-          bannerTextEl.textContent = `【1周目終了 議論タイム】3枚モード特典：視点中の ${viewer.name} は自分の場札確認＆自己申告（嘘OK）が可能です。`;
+          bannerTextEl.textContent = `【1周目終了 議論タイム】3枚モード特典：視点中の ${seatMark(viewer.index)}${viewer.name} は自分の場札確認＆自己申告（嘘OK）が可能です。`;
           if (!viewer.usedLap1EndCheck) {
-            bannerBtnsEl.innerHTML = `<button type="button" class="primary" onclick="openLap1EndWireCheck()">自分の場札を確認＆申告する（${viewer.name}）</button>`;
+            bannerBtnsEl.innerHTML = `<button type="button" class="primary" onclick="openLap1EndWireCheck()">自分の場札を確認＆申告する（${seatMark(viewer.index)}${viewer.name}）</button>`;
           } else {
-            bannerBtnsEl.innerHTML = `<span class="badge">確認・申告済み（${viewer.name}）</span>`;
+            bannerBtnsEl.innerHTML = `<span class="badge">確認・申告済み（${seatMark(viewer.index)}${viewer.name}）</span>`;
           }
         } else {
           bannerTextEl.textContent = `議論タイム中です。通話で推理や交渉を行い、終わったら「議論終了」を押してください。`;
@@ -2011,113 +2379,14 @@
         bannerEl.style.display = "none";
       }
 
-      const actor = game.players[game.turnIndex];
       document.getElementById("turnGuideText").textContent =
         game.phase === "action"
-          ? `現在の手番：席順${actor.index + 1} ${actor.name}（残り手札 ${actor.hand.length}枚）`
+          ? `現在の手番：${seatMark(actor.index)} ${actor.name}（残り手札 ${actor.hand.length}枚）`
           : `フェーズ：${phaseMap[game.phase]}`;
 
-      // ② 盤面（プレイヤー一覧）
+      // ② 時計回り盤面
       const spec = getCurrentModeSpec();
-      const grid = document.getElementById("playersGrid");
-      grid.innerHTML = "";
-
-      game.players.forEach((p, idx) => {
-        const cardEl = document.createElement("div");
-        const isTurn = game.phase === "action" && idx === game.turnIndex;
-        const canSelectPlayer =
-          game.phase === "action" &&
-          spec &&
-          spec.needPlayerTarget &&
-          (spec.allowSelfPlayer || idx !== game.turnIndex);
-
-        cardEl.className =
-          "player-card" +
-          (isTurn ? " active-turn" : "") +
-          (canSelectPlayer ? " selectable-target" : "");
-
-        if (canSelectPlayer) {
-          cardEl.onclick = () => onPlayerCardClick(idx);
-        }
-
-        const roleHtml = p.roleVisible
-          ? `<span class="role-tag ${p.role === "cop" ? "role-cop" : "role-bomber"}">${p.role === "cop" ? "捜査官" : "爆弾魔"}</span>`
-          : `<span class="role-tag role-hidden">役職非表示</span>`;
-
-        const wiresHtml = p.wires
-          .map((w, wIdx) => {
-            let cls = "wire-slot ";
-            let label = `導線${wIdx + 1}`;
-            let pickable = false;
-
-            if (w.revealed) {
-              if (w.kind === "code") {
-                cls += "wire-revealed-code";
-                label = "解除コード";
-              } else if (w.kind === "bomb") {
-                cls += "wire-revealed-bomb";
-                label = "時限爆弾";
-              } else {
-                cls += "wire-revealed-safe";
-                label = "安全";
-              }
-            } else {
-              cls += "wire-hidden";
-              if (game.phase === "action" && spec) {
-                if (spec.needWireTarget) {
-                  const okSelf = spec.allowSelfWire || idx !== game.turnIndex;
-                  const okAdj = !spec.onlyAdjacentWire || isAdjacentPlayer(game.turnIndex, idx);
-                  if (okSelf && okAdj) pickable = true;
-                } else if (spec.needDogTarget && idx !== game.turnIndex) {
-                  pickable = true;
-                }
-              }
-              if (pickable) cls += " pickable";
-              const isSelected = game.selectedTargets.some((t) => t.wireId === w.id);
-              if (isSelected) cls += " selected";
-            }
-
-            const viewer = game.players[game.viewingPlayerIndex];
-            const memoKind = !w.revealed && viewer ? viewer.memosByViewer[w.id] : null;
-            const memoHtml = memoKind ? `<span class="memo-badge">🔍${WIRE_LABELS[memoKind]}</span>` : "";
-
-            const clickAttr = pickable ? `onclick="event.stopPropagation(); onWireClick(${idx}, ${wIdx})"` : "";
-            return `<div class="${cls}" ${clickAttr}><span>${label}</span>${memoHtml}</div>`;
-          })
-          .join("");
-
-        const canDogHand =
-          game.phase === "action" && spec && spec.needDogTarget && idx !== game.turnIndex && p.hand.length > 0;
-
-        const c1Text = p.initialClaim ? `初期申告：爆${p.initialClaim.bombs} / 解${p.initialClaim.codes}` : "初期申告：未入力";
-        const c2Text = p.lap1EndClaim ? `1周後申告：爆${p.lap1EndClaim.bombs} / 解${p.lap1EndClaim.codes}` : "";
-        const claimHtml = `<div class="claim-box">${c1Text}${c2Text ? `<br/>${c2Text}` : ""}</div>`;
-
-        cardEl.innerHTML = `
-          <div class="player-top">
-            <div class="seat-name">
-              <span class="seat-num">${idx + 1}</span>
-              <span>${p.name}</span>
-            </div>
-            <button type="button" style="padding: 3px 7px; font-size: 0.72rem;" onclick="event.stopPropagation(); switchViewTo(${idx})">
-              視点切替
-            </button>
-          </div>
-          <div class="role-row">
-            ${roleHtml}
-            <button type="button" style="padding: 2px 6px; font-size: 0.7rem;" onclick="event.stopPropagation(); toggleRoleVisibility(${idx})">
-              ${p.roleVisible ? "隠す" : "表示"}
-            </button>
-          </div>
-          <div class="wires-row">${wiresHtml}</div>
-          <div class="player-meta">
-            <span>手札：<strong>${p.hand.length}</strong>枚 ${p.hand.length === 1 ? '<span class="last-card-pill">★ラスト1枚</span>' : ""}</span>
-            ${canDogHand ? `<button type="button" class="warn" style="padding: 2px 7px; font-size: 0.72rem;" onclick="event.stopPropagation(); pickDogHandTarget(${idx})">犬で手札狙い</button>` : ""}
-          </div>
-          ${claimHtml}
-        `;
-        grid.appendChild(cardEl);
-      });
+      renderClockwiseBoard(spec);
 
       // ③ 行動ログ
       const logBox = document.getElementById("logBox");
@@ -2131,7 +2400,7 @@
       const isViewerTurn = game.phase === "action" && game.viewingPlayerIndex === game.turnIndex;
 
       document.getElementById("viewingPlayerLabel").textContent =
-        `視点：席順${viewer.index + 1} ${viewer.name}`;
+        `視点：${seatMark(viewer.index)} ${viewer.name}`;
       document.getElementById("viewingPlayerRoleHint").innerHTML =
         `役職：<strong style="color:${viewer.role === "cop" ? "#7dd3fc" : "#fca5a5"}">${viewer.role === "cop" ? "捜査官" : "爆弾魔"}</strong>` +
         (isViewerTurn ? ` <span class="badge turn" style="padding: 2px 7px;">あなたのターン</span>` : "");
@@ -2171,7 +2440,7 @@
             ? "議論タイム中です。話し合いが終わったら「議論終了」を押してください。"
             : "初期導線確認・申告中、またはゲーム終了です。";
       } else if (!isViewerTurn) {
-        statusEl.textContent = `現在は ${actor.name} の手番です。上の「視点切替」から ${actor.name} を選んで操作してください。`;
+        statusEl.textContent = `現在は ${seatMark(actor.index)}${actor.name} の手番です。上の「視点」から選んで操作してください。`;
       } else if (game.basicCutMode) {
         statusEl.textContent =
           game.selectedTargets.length === 1
@@ -2182,7 +2451,7 @@
           statusEl.textContent = `「${spec.card.name}」を選択中。「決定（実行）」で発動します。`;
         } else if (spec.needWireTarget) {
           const hint = spec.onlyAdjacentWire
-            ? "右隣または左隣のプレイヤーの裏向き導線を1枚選んでください。"
+            ? "矢印でつながっている右隣または左隣のプレイヤーの裏向き導線を1枚選んでください。"
             : spec.optionalSecond
               ? "裏向き導線を1〜2枚選んでください。"
               : "自分以外の裏向き導線を1枚選んでください。";
@@ -2190,7 +2459,7 @@
         } else if (spec.needPlayerTarget) {
           statusEl.textContent = `「${spec.card.name}」選択中：対象プレイヤー枠をタップして選んでください。`;
         } else if (spec.needDogTarget) {
-          statusEl.textContent = `「警察犬」選択中：他人の裏向き導線1枚をタップするか、「犬で手札狙い」を押してください。`;
+          statusEl.textContent = `「警察犬」選択中：他人の裏向き導線1枚をタップするか、「犬で手札」を押してください。`;
         }
       } else {
         statusEl.textContent = "手札カードを1枚選ぶか、「基本カット」を押してください。";
