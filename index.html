@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>爆弾は踊る（プロトタイプ）</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --panel-2: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #f59e0b;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --border: rgba(255, 255, 255, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel-2);
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+    }
+
+    button:hover:not(:disabled) {
+      background: #475569;
+    }
+
+    button:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    button.primary {
+      background: var(--accent);
+      color: #082f49;
+      border-color: transparent;
+    }
+
+    button.primary:hover:not(:disabled) {
+      background: #7dd3fc;
+    }
+
+    button.warn {
+      background: var(--accent-2);
+      color: #451a03;
+      border-color: transparent;
+    }
+
+    button.danger {
+      background: var(--danger);
+      color: #fff;
+      border-color: transparent;
+    }
+
+    button.success {
+      background: var(--success);
+      color: #052e16;
+      border-color: transparent;
+    }
+
+    /* セットアップ画面 */
+    .setup-wrap {
+      max-width: 720px;
+      margin: 24px auto;
+      padding: 20px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+    }
+
+    .setup-wrap h1 {
+      margin: 0 0 6px;
+      font-size: 1.5rem;
+    }
+
+    .setup-wrap p.sub {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .form-row {
+      margin-bottom: 16px;
+    }
+
+    .form-row label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+      font-size: 0.95rem;
+    }
+
+    .pill-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+    }
+
+    .pill.active {
+      background: var(--accent);
+      color: #082f49;
+      border-color: transparent;
+    }
+
+    .names-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 8px;
+    }
+
+    .names-grid input {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    .info-box {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 18px;
+    }
+
+    /* ゲーム画面（4ゾーン構成） */
+    .game-shell {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    /* ① ヘッダー */
+    .zone-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .header-left, .header-right {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+    }
+
+    .badge.turn {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: var(--accent-2);
+      color: #fde68a;
+    }
+
+    .badge.code {
+      background: rgba(34, 197, 94, 0.18);
+      border-color: var(--success);
+      color: #86efac;
+    }
+
+    .timer-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      background: #1e293b;
+      border: 1px solid var(--accent-2);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #fde68a;
+    }
+
+    .discussion-banner {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+
+    /* ② みんなの盤面エリア */
+    .zone-board {
+      flex: 1;
+      padding: 12px 14px;
+    }
+
+    .board-hint {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .players-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    @media (min-width: 768px) {
+      .players-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .player-card {
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 10px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .player-card.active-turn {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+    }
+
+    .player-card.selectable-target {
+      border-style: dashed;
+      border-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .player-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+
+    .seat-name {
+      font-weight: 700;
+      font-size: 0.92rem;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .seat-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--panel-2);
+      font-size: 0.75rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .role-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      margin-bottom: 8px;
+      min-height: 24px;
+      font-size: 0.78rem;
+    }
+
+    .role-tag {
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .role-cop {
+      background: rgba(56, 189, 248, 0.2);
+      color: #7dd3fc;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .role-bomber {
+      background: rgba(239, 68, 68, 0.22);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.45);
+    }
+
+    .role-hidden {
+      background: var(--panel-2);
+      color: var(--muted);
+    }
+
+    .wires-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .wire-slot {
+      flex: 1;
+      height: 62px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      position: relative;
+      text-align: center;
+      padding: 4px;
+    }
+
+    .wire-hidden {
+      background: linear-gradient(145deg, #273549, #1b2534);
+      color: #cbd5e1;
+    }
+
+    .wire-hidden.pickable {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+      cursor: pointer;
+    }
+
+    .wire-hidden.selected {
+      background: rgba(56, 189, 248, 0.25);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .wire-revealed-code {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: var(--success);
+      color: #86efac;
+    }
+
+    .wire-revealed-safe {
+      background: rgba(148, 163, 184, 0.15);
+      border-color: #64748b;
+      color: #cbd5e1;
+    }
+
+    .wire-revealed-bomb {
+      background: rgba(239, 68, 68, 0.28);
+      border-color: var(--danger);
+      color: #fecaca;
+    }
+
+    .memo-badge {
+      margin-top: 3px;
+      font-size: 0.68rem;
+      padding: 1px 5px;
+      border-radius: 5px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fde047;
+    }
+
+    .player-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .last-card-pill {
+      color: #fca5a5;
+      font-weight: 700;
+    }
+
+    .claim-box {
+      margin-top: 6px;
+      padding: 5px 7px;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.71rem;
+      color: #cbd5e1;
+      line-height: 1.35;
+    }
+
+    /* ③ 行動ログ */
+    .zone-log {
+      background: #0b1120;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 14px;
+    }
+
+    .log-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .log-box {
+      max-height: 68px;
+      overflow-y: auto;
+      font-size: 0.82rem;
+      line-height: 1.45;
+    }
+
+    .log-item {
+      padding: 1px 0;
+    }
+
+    .log-secret {
+      color: #fde047;
+    }
+
+    /* ④ 自分のアクション手札エリア（下部固定） */
+    .zone-hand {
+      position: sticky;
+      bottom: 0;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(8px);
+      padding: 10px 14px 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .hand-top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 0.85rem;
+    }
+
+    .hand-cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .hand-card {
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      padding: 8px;
+      text-align: left;
+      min-height: 82px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .hand-card.selected {
+      transform: translateY(-4px);
+      border-color: var(--accent);
+      background: #172554;
+    }
+
+    .hand-card.disabled-card {
+      opacity: 0.45;
+    }
+
+    .card-title {
+      font-weight: 800;
+      font-size: 0.88rem;
+      margin-bottom: 3px;
+    }
+
+    .card-desc {
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+
+    .action-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .selection-status {
+      font-size: 0.82rem;
+      color: #bae6fd;
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* モーダル共通 */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: rgba(2, 6, 23, 0.82);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 520px;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-card h2 {
+      margin: 0 0 10px;
+      font-size: 1.2rem;
+    }
+
+    .peek-reveal-box {
+      background: #0f172a;
+      border: 1px solid var(--accent);
+      border-radius: 12px;
+      padding: 14px;
+      margin: 12px 0;
+      text-align: center;
+    }
+
+    .peek-chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .chip {
+      padding: 6px 10px;
+      border-radius: 8px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .claim-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .claim-input-box {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .claim-input-box label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .claim-input-box input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .choice-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .choice-btn {
+      width: 100%;
+      text-align: left;
+      padding: 10px 12px;
+    }
+
+    .choice-btn.picked {
+      border-color: var(--accent);
+      background: #172554;
+    }
+
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.82rem;
+    }
+
+    .result-table th, .result-table td {
+      border: 1px solid var(--border);
+      padding: 7px 8px;
+      text-align: left;
+    }
+
+    .result-table th {
+      background: #0f172a;
+    }
+  </style>
+</head>
+<body>
+  <!-- セットアップ画面 -->
+  <div id="setupScreen" class="setup-wrap">
+    <h1>爆弾は踊る（プロトタイプ）</h1>
+    <p class="sub">ブラウザ単体テスト版｜1人でも各プレイヤーの手番を切り替えながら全ルールを確認できます</p>
+
+    <div class="form-row">
+      <label>プレイ人数（4〜8人）</label>
+      <div id="playerCountPills" class="pill-group"></div>
+    </div>
+
+    <div class="form-row">
+      <label>ゲームモード</label>
+      <div class="pill-group">
+        <button type="button" class="pill active" data-mode="light" onclick="setMode('light')">
+          ライトモード（場札2枚）
+        </button>
+        <button type="button" class="pill" data-mode="standard" onclick="setMode('standard')">
+          スタンダードモード（場札3枚・1周目終了時に場札確認あり）
+        </button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>プレイヤー名（時計回り ①→②→…）</label>
+      <div id="namesGrid" class="names-grid"></div>
+    </div>
+
+    <div id="setupSummary" class="info-box"></div>
+
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button type="button" class="primary" onclick="startGame()">ゲーム開始（初期導線確認へ）</button>
+    </div>
+  </div>
+
+  <!-- ゲーム画面（4ゾーン構成） -->
+  <div id="gameScreen" class="game-shell" style="display: none;">
+    <!-- ① ヘッダー -->
+    <header class="zone-header">
+      <div class="header-left">
+        <span id="roundBadge" class="badge">1周目 / 全3周</span>
+        <span id="phaseBadge" class="badge turn">進行中</span>
+        <span id="codeBadge" class="badge code">解除コード: 0 / 3</span>
+      </div>
+      <div class="header-right">
+        <div id="timerBox" class="timer-box">
+          <span>⏱ <span id="timerText">01:30</span></span>
+          <button type="button" id="toggleTimerBtn" onclick="toggleTimer()" style="padding: 3px 8px; font-size: 0.75rem;">一時停止</button>
+          <button type="button" id="endDiscussionBtn" onclick="finishDiscussion()" style="padding: 3px 8px; font-size: 0.75rem;">議論終了</button>
+        </div>
+        <button type="button" onclick="openAllLogsModal()" style="padding: 5px 10px; font-size: 0.78rem;">全ログ</button>
+        <button type="button" onclick="backToSetup()" style="padding: 5px 10px; font-size: 0.78rem;">設定へ</button>
+      </div>
+    </header>
+
+    <!-- ② みんなの盤面エリア -->
+    <main class="zone-board">
+      <div id="discussionBanner" class="discussion-banner" style="display: none;">
+        <div id="discussionBannerText">議論タイム中です。</div>
+        <div id="discussionActionButtons" style="display: flex; gap: 8px; flex-wrap: wrap;"></div>
+      </div>
+
+      <div class="board-hint">
+        <span id="turnGuideText">現在の手番：プレイヤー①</span>
+        <span>※テスト用：各カードの「視点切替」でその人の手札画面を表示できます</span>
+      </div>
+      <div id="playersGrid" class="players-grid"></div>
+    </main>
+
+    <!-- ③ 行動ログ -->
+    <section class="zone-log">
+      <div class="log-header">
+        <span>行動ログ（最新順）</span>
+        <span id="modeCaption"></span>
+      </div>
+      <div id="logBox" class="log-box"></div>
+    </section>
+
+    <!-- ④ 自分のアクション手札エリア（下部固定） -->
+    <footer class="zone-hand">
+      <div class="hand-top-bar">
+        <div>
+          <strong id="viewingPlayerLabel">視点：プレイヤー①</strong>
+          <span id="viewingPlayerRoleHint" style="margin-left: 8px; font-size: 0.8rem;"></span>
+        </div>
+        <div id="handSubInfo" style="font-size: 0.78rem; color: var(--muted);"></div>
+      </div>
+
+      <div id="handCards" class="hand-cards"></div>
+
+      <div class="action-bar">
+        <div id="selectionStatus" class="selection-status">
+          アクションカードを選ぶか、「基本カット」を選択してください。
+        </div>
+        <div class="action-buttons">
+          <button type="button" id="basicCutBtn" class="warn" onclick="selectBasicCut()">
+            基本カット（手札1枚捨て）
+          </button>
+          <button type="button" onclick="clearSelection()">選択解除</button>
+          <button type="button" id="executeBtn" class="primary" disabled onclick="executeSelectedAction()">
+            決定（実行）
+          </button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- 覗き見OKモーダル -->
+  <div id="peekModal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2 id="peekTitle">覗き見確認</h2>
+      <p id="peekSubtitle" style="color: var(--muted); font-size: 0.88rem; margin: 0;"></p>
+      <div id="peekContent" class="peek-reveal-box"></div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" class="primary" onclick="confirmPeekOk()">OK（確認完了）</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自己申告（嘘も可）入力モーダル -->
+  <div id="claimModal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2 id="claimTitle">自己申告の入力（嘘も可）</h2>
+      <p id="claimSubtitle" style="color: var(--muted); font-size: 0.88rem; margin: 0;">
+        自分の場札にある「爆弾数」と「解除コード数」を自由に申告できます（ブラフ・嘘もOK）。
+      </p>
+
+      <div class="claim-form-grid">
+        <div class="claim-input-box">
+          <label for="claimBombInput">自己申告：爆弾数</label>
+          <input type="number" id="claimBombInput" min="0" max="5" value="0" />
+        </div>
+        <div class="claim-input-box">
+          <label for="claimCodeInput">自己申告：解除コード数</label>
+          <input type="number" id="claimCodeInput" min="0" max="5" value="0" />
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" onclick="skipDeclaration()">申告せずに次へ</button>
+        <button type="button" class="primary" onclick="submitDeclaration()">この内容で申告する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- スリ（押し付け選択）モーダル -->
+  <div id="surikModal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2>スリ：相手に渡すカードを選択</h2>
+      <p id="surikDesc" style="color: var(--muted); font-size: 0.88rem;"></p>
+      <div id="surikStolenBox" class="peek-reveal-box"></div>
+      <div id="surikHandChoices" class="choice-list"></div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" id="surikConfirmBtn" class="primary" disabled onclick="confirmSurikGive()">
+          渡して完了
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 全ログモーダル -->
+  <div id="allLogsModal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2>全行動ログ</h2>
+      <div id="allLogsContent" class="choice-list" style="max-height: 55vh; overflow-y: auto;"></div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" class="primary" onclick="closeModal('allLogsModal')">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- リザルト（勝敗＆ネタばらし）モーダル -->
+  <div id="resultModal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2 id="resultTitle">勝敗結果</h2>
+      <p id="resultReason" style="font-size: 0.95rem; margin: 6px 0 14px;"></p>
+      <div id="resultTableWrap"></div>
+      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
+        <button type="button" onclick="backToSetup()">設定に戻る</button>
+        <button type="button" class="primary" onclick="startGame()">同じ設定でもう1戦</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 1. カード定義（全31枚）
+    const ACTION_DECK_SPEC = [
+      { id: "cut", name: "カット", type: "cut", count: 8, desc: "自分以外の裏向き導線1枚を表向きにする。" },
+      { id: "double_cut", name: "ダブル・カット", type: "double_cut", count: 2, desc: "裏向き導線を2枚まで表向きにする（同一人物可）。" },
+      { id: "thermo", name: "サーモグラフィ", type: "thermo", count: 4, desc: "自分以外の裏向き導線1枚を自分だけこっそり見る。" },
+      { id: "wiretap", name: "盗聴器", type: "wiretap", count: 3, desc: "自分以外のアクション手札をすべて見る。" },
+      { id: "swap_wire", name: "配線のすり替え", type: "swap_wire", count: 4, desc: "自分の導線1枚と、右隣または左隣の導線1枚を裏向きのまま交換する。" },
+      { id: "shuffle_wire", name: "緊急シャッフル", type: "shuffle_wire", count: 2, desc: "自分を含む誰か1人の導線をすべて混ぜて裏向きで並べ直す。" },
+      { id: "surik", name: "スリ", type: "surik", count: 2, desc: "自分以外の手札からランダムに1枚引き、自分の手札1枚を渡す。" },
+      { id: "rumor", name: "うわさ", type: "rumor", count: 2, desc: "自分以外を1人指名し、お互いの手札からランダムに1枚ずつ強制交換する。" },
+      { id: "dog", name: "警察犬", type: "dog", count: 1, desc: "自分以外の手札1枚または裏向き導線1枚を指定。起爆スイッチか時限爆弾なら捜査官勝利！" },
+      { id: "mole", name: "内通者の密書", type: "mole", count: 1, desc: "使用した瞬間、自分の陣営が「爆弾魔」になる。" },
+      { id: "defuse_key", name: "解除成功", type: "defuse_key", count: 1, lastOnly: true, desc: "【手札が最後の1枚のみ】捜査官が使えば捜査官チームの勝利！" },
+      { id: "detonator", name: "起爆スイッチ", type: "detonator", count: 1, lastOnly: true, desc: "【手札が最後の1枚のみ】爆弾魔が使えば爆弾魔チームの勝利！" }
+    ];
+
+    const WIRE_LABELS = {
+      bomb: "時限爆弾",
+      code: "解除コード",
+      safe: "安全"
+    };
+
+    // 2. 人数・モード別バランス設定
+    function getBalanceConfig(count, mode) {
+      let rolePool;
+      if (count === 4) {
+        rolePool = ["cop", "cop", "cop", "cop", "bomber", "bomber"]; // 0〜2人
+      } else if (count === 5) {
+        rolePool = ["cop", "cop", "cop", "cop", "bomber", "bomber"]; // 1〜2人
+      } else if (count === 6) {
+        rolePool = ["cop", "cop", "cop", "cop", "cop", "bomber", "bomber"]; // 1〜2人
+      } else if (count === 7) {
+        rolePool = ["cop", "cop", "cop", "cop", "cop", "bomber", "bomber", "bomber"]; // 2〜3人
+      } else {
+        rolePool = ["cop", "cop", "cop", "cop", "cop", "cop", "bomber", "bomber", "bomber"]; // 2〜3人
+      }
+
+      const wiresPerPlayer = mode === "light" ? 2 : 3;
+      const codeTableLight = {
+        4: { total: 3, win: 3 },
+        5: { total: 4, win: 3 },
+        6: { total: 5, win: 4 },
+        7: { total: 6, win: 5 },
+        8: { total: 7, win: 5 }
+      };
+      const codeTableStandard = {
+        4: { total: 4, win: 3 },
+        5: { total: 5, win: 4 },
+        6: { total: 6, win: 5 },
+        7: { total: 7, win: 5 },
+        8: { total: 8, win: 6 }
+      };
+
+      const codeInfo = mode === "light" ? codeTableLight[count] : codeTableStandard[count];
+      const totalWires = count * wiresPerPlayer;
+      const bombCount = 1;
+      const safeCount = totalWires - bombCount - codeInfo.total;
+
+      return {
+        rolePool,
+        wiresPerPlayer,
+        bombCount,
+        codeCount: codeInfo.total,
+        winCodes: codeInfo.win,
+        safeCount
+      };
+    }
+
+    // 3. 状態管理
+    let setupState = {
+      playerCount: 4,
+      mode: "light",
+      names: ["プレイヤー1", "プレイヤー2", "プレイヤー3", "プレイヤー4", "プレイヤー5", "プレイヤー6", "プレイヤー7", "プレイヤー8"]
+    };
+
+    let game = null;
+    let timerInterval = null;
+
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function initSetupUI() {
+      const pillsWrap = document.getElementById("playerCountPills");
+      pillsWrap.innerHTML = "";
+      for (let n = 4; n <= 8; n++) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "pill" + (n === setupState.playerCount ? " active" : "");
+        btn.textContent = `${n}人`;
+        btn.onclick = () => {
+          setupState.playerCount = n;
+          initSetupUI();
+        };
+        pillsWrap.appendChild(btn);
+      }
+
+      document.querySelectorAll("[data-mode]").forEach((el) => {
+        el.classList.toggle("active", el.dataset.mode === setupState.mode);
+      });
+
+      const namesGrid = document.getElementById("namesGrid");
+      namesGrid.innerHTML = "";
+      for (let i = 0; i < setupState.playerCount; i++) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = setupState.names[i] || `プレイヤー${i + 1}`;
+        input.placeholder = `プレイヤー${i + 1}`;
+        input.oninput = (e) => {
+          setupState.names[i] = e.target.value.trim() || `プレイヤー${i + 1}`;
+        };
+        namesGrid.appendChild(input);
+      }
+
+      const cfg = getBalanceConfig(setupState.playerCount, setupState.mode);
+      document.getElementById("setupSummary").innerHTML = `
+        <strong>選択中バランス：</strong>${setupState.playerCount}人 / ${setupState.mode === "light" ? "ライトモード（場札2枚）" : "スタンダードモード（場札3枚・1周目終了時に場札確認あり）"}<br/>
+        ・<strong>役職（ランダム欠け）：</strong>${cfg.rolePool.length}枚から${setupState.playerCount}枚配布（残り${cfg.rolePool.length - setupState.playerCount}枚は未使用・非公開）<br/>
+        ・<strong>導線カード（計${setupState.playerCount * cfg.wiresPerPlayer}枚）：</strong>時限爆弾 ${cfg.bombCount}枚 / 解除コード ${cfg.codeCount}枚（<strong>${cfg.winCodes}枚</strong>で捜査官勝利）/ 安全 ${cfg.safeCount}枚<br/>
+        ・<strong>自己申告（嘘OK）：</strong>初期確認時${setupState.mode === "standard" ? "＆1周目終了時の場札確認時" : ""}に入力可能
+      `;
+    }
+
+    function setMode(mode) {
+      setupState.mode = mode;
+      initSetupUI();
+    }
+
+    function buildActionDeck() {
+      const deck = [];
+      let seq = 1;
+      for (const spec of ACTION_DECK_SPEC) {
+        for (let i = 0; i < spec.count; i++) {
+          deck.push({
+            uid: `card_${seq++}_${spec.id}`,
+            id: spec.id,
+            name: spec.name,
+            type: spec.type,
+            lastOnly: !!spec.lastOnly,
+            desc: spec.desc
+          });
+        }
+      }
+      return shuffleArray(deck);
+    }
+
+    function buildWireDeck(cfg) {
+      const deck = [];
+      for (let i = 0; i < cfg.bombCount; i++) deck.push("bomb");
+      for (let i = 0; i < cfg.codeCount; i++) deck.push("code");
+      for (let i = 0; i < cfg.safeCount; i++) deck.push("safe");
+      return shuffleArray(deck);
+    }
+
+    function startGame() {
+      const n = setupState.playerCount;
+      const cfg = getBalanceConfig(n, setupState.mode);
+      const roles = shuffleArray(cfg.rolePool);
+      const wireDeck = buildWireDeck(cfg);
+      const actionDeck = buildActionDeck();
+
+      const players = [];
+      let wireCursor = 0;
+      for (let i = 0; i < n; i++) {
+        const myWires = [];
+        for (let w = 0; w < cfg.wiresPerPlayer; w++) {
+          myWires.push({
+            id: `w_${i}_${w}_${Math.random().toString(36).slice(2, 6)}`,
+            kind: wireDeck[wireCursor++],
+            revealed: false
+          });
+        }
+        const hand = [actionDeck.pop(), actionDeck.pop(), actionDeck.pop()];
+        const memosByViewer = {};
+        myWires.forEach((wr) => {
+          memosByViewer[wr.id] = wr.kind;
+        });
+
+        players.push({
+          index: i,
+          name: setupState.names[i] || `プレイヤー${i + 1}`,
+          initialRole: roles[i],
+          role: roles[i],
+          wires: myWires,
+          hand,
+          memosByViewer,
+          roleVisible: true,
+          initialClaim: null,
+          lap1EndClaim: null,
+          usedLap1EndCheck: false
+        });
+      }
+
+      game = {
+        playerCount: n,
+        mode: setupState.mode,
+        cfg,
+        players,
+        turnIndex: 0,
+        turnsInCurrentLap: 0,
+        lap: 1, // 1, 2, 3
+        discussionAfterLap: null, // 0: 開始前, 1: 1周目終了後, 2: 2周目終了後
+        phase: "initial_peek", // "initial_peek" | "discussion" | "action" | "ended"
+        peekedInitial: players.map(() => false),
+        revealedCodes: 0,
+        viewingPlayerIndex: 0,
+        selectedCardUid: null,
+        basicCutMode: false,
+        selectedTargets: [],
+        timerSeconds: 90,
+        timerRunning: false,
+        logs: [],
+        peekQueue: [],
+        pendingClaim: null,
+        pendingSurik: null,
+        winner: null,
+        winReason: ""
+      };
+
+      stopTimer();
+      document.getElementById("setupScreen").style.display = "none";
+      document.getElementById("gameScreen").style.display = "flex";
+      closeModal("resultModal");
+
+      addLog(`ゲーム開始（${n}人 / ${setupState.mode === "light" ? "ライト2枚" : "スタンダード3枚"}）。各自初期導線を確認してください。`, false);
+
+      openInitialPeek(0);
+      renderAll();
+    }
+
+    function backToSetup() {
+      stopTimer();
+      closeAllModals();
+      document.getElementById("gameScreen").style.display = "none";
+      document.getElementById("setupScreen").style.display = "block";
+      initSetupUI();
+    }
+
+    function addLog(text, secret = false) {
+      game.logs.unshift({
+        time: new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+        text,
+        secret
+      });
+    }
+
+    // タイマー制御
+    function startTimer(seconds) {
+      stopTimer();
+      game.timerSeconds = seconds;
+      game.timerRunning = true;
+      updateTimerDisplay();
+      timerInterval = setInterval(() => {
+        if (!game || !game.timerRunning) return;
+        game.timerSeconds -= 1;
+        if (game.timerSeconds <= 0) {
+          game.timerSeconds = 0;
+          stopTimer();
+          if (game.phase === "discussion") {
+            addLog("議論時間が終了しました。手番フェーズへ進みます。", false);
+            enterActionPhase();
+          }
+        }
+        updateTimerDisplay();
+      }, 1000);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      if (game) game.timerRunning = false;
+      updateTimerDisplay();
+    }
+
+    function toggleTimer() {
+      if (!game || game.phase !== "discussion") return;
+      game.timerRunning = !game.timerRunning;
+      updateTimerDisplay();
+    }
+
+    function updateTimerDisplay() {
+      if (!game) return;
+      const m = String(Math.floor(game.timerSeconds / 60)).padStart(2, "0");
+      const s = String(game.timerSeconds % 60).padStart(2, "0");
+      document.getElementById("timerText").textContent = `${m}:${s}`;
+      const btn = document.getElementById("toggleTimerBtn");
+      btn.textContent = game.timerRunning ? "一時停止" : "再開";
+      btn.disabled = game.phase !== "discussion";
+      document.getElementById("endDiscussionBtn").disabled = game.phase !== "discussion";
+    }
+
+    function finishDiscussion() {
+      if (!game || game.phase !== "discussion") return;
+      stopTimer();
+      addLog("議論を終了し、手番フェーズを開始しました。", false);
+      enterActionPhase();
+      renderAll();
+    }
+
+    function enterActionPhase() {
+      game.phase = "action";
+      game.discussionAfterLap = null;
+      game.viewingPlayerIndex = game.turnIndex;
+      clearSelection();
+      renderAll();
+    }
+
+    // 覗き見＆自己申告モーダル
+    function openInitialPeek(playerIdx) {
+      const p = game.players[playerIdx];
+      game.viewingPlayerIndex = playerIdx;
+      game.peekQueue = [{
+        kind: "initial",
+        playerIndex: playerIdx,
+        title: `初期導線確認：${p.name}（席順${playerIdx + 1}）`,
+        subtitle: "自分の導線を確認したら「OK」を押してください（他の人には見えません）。",
+        items: p.wires.map((w, idx) => `導線${idx + 1}：${WIRE_LABELS[w.kind]}`)
+      }];
+      showNextPeekModal();
+    }
+
+    // スタンダードモード（3枚モード）の1周目終了時限定：自分の場札確認
+    function openLap1EndWireCheck() {
+      if (!game || game.phase !== "discussion" || game.mode !== "standard" || game.discussionAfterLap !== 1) return;
+      const p = game.players[game.viewingPlayerIndex];
+      if (p.usedLap1EndCheck) return;
+
+      const items = p.wires.map((w, idx) => {
+        const status = w.revealed ? "【公開済】" : "【裏向き】";
+        return `導線${idx + 1}${status}：${WIRE_LABELS[w.kind]}`;
+      });
+
+      game.peekQueue = [{
+        kind: "lap1_end",
+        playerIndex: p.index,
+        title: `1周目終了時の場札確認：${p.name}（席順${p.index + 1}）`,
+        subtitle: "現在の自分の場札を確認したら「OK」を押してください（その後、自己申告を入力できます）。",
+        items
+      }];
+      showNextPeekModal();
+    }
+
+    function enqueuePeek(peekObj) {
+      game.peekQueue.push(peekObj);
+      showNextPeekModal();
+    }
+
+    function showNextPeekModal() {
+      if (game.peekQueue.length === 0) {
+        closeModal("peekModal");
+        return;
+      }
+      const item = game.peekQueue[0];
+      document.getElementById("peekTitle").textContent = item.title;
+      document.getElementById("peekSubtitle").textContent = item.subtitle;
+      const box = document.getElementById("peekContent");
+      box.innerHTML = `<div class="peek-chips">${item.items.map((t) => `<span class="chip">${t}</span>`).join("")}</div>`;
+      document.getElementById("peekModal").classList.add("open");
+    }
+
+    function confirmPeekOk() {
+      const current = game.peekQueue.shift();
+      if (!current) {
+        closeModal("peekModal");
+        return;
+      }
+
+      if (current.kind === "initial") {
+        const idx = current.playerIndex;
+        game.peekedInitial[idx] = true;
+        game.players[idx].wires = shuffleArray(game.players[idx].wires);
+        addLog(`${game.players[idx].name} が初期導線を確認して並べ直しました。`, false);
+
+        closeModal("peekModal");
+        openClaimModal(idx, "initial");
+        renderAll();
+        return;
+      }
+
+      if (current.kind === "lap1_end") {
+        const idx = current.playerIndex;
+        game.players[idx].usedLap1EndCheck = true;
+        addLog(`${game.players[idx].name} が1周目終了時に自分の場札を確認しました。`, false);
+
+        closeModal("peekModal");
+        openClaimModal(idx, "lap1_end");
+        renderAll();
+        return;
+      }
+
+      if (game.peekQueue.length > 0) {
+        showNextPeekModal();
+      } else {
+        closeModal("peekModal");
+        if (game.phase === "action" && !game.winner) {
+          advanceTurn();
+        }
+      }
+      renderAll();
+    }
+
+    // 自己申告（嘘も可）モーダル
+    function openClaimModal(playerIdx, timing) {
+      const p = game.players[playerIdx];
+      game.pendingClaim = { playerIndex: playerIdx, timing };
+
+      const timingLabel = timing === "initial" ? "初期確認後" : "1周目終了時の確認後";
+      document.getElementById("claimTitle").textContent = `自己申告の入力（${timingLabel}・嘘も可）`;
+      document.getElementById("claimSubtitle").textContent =
+        `${p.name}（席順${playerIdx + 1}）の自己申告を入力してください。実際の枚数と違っていても構いません（ブラフOK）。`;
+
+      const prevClaim = timing === "initial" ? p.initialClaim : p.lap1EndClaim;
+      document.getElementById("claimBombInput").value = prevClaim ? prevClaim.bombs : 0;
+      document.getElementById("claimCodeInput").value = prevClaim ? prevClaim.codes : 0;
+      document.getElementById("claimModal").classList.add("open");
+    }
+
+    function sanitizeClaimNumber(val) {
+      const num = parseInt(val, 10);
+      if (Number.isNaN(num) || num < 0) return 0;
+      if (num > 10) return 10;
+      return num;
+    }
+
+    function submitDeclaration() {
+      const pending = game.pendingClaim;
+      if (!pending) return;
+      const bombs = sanitizeClaimNumber(document.getElementById("claimBombInput").value);
+      const codes = sanitizeClaimNumber(document.getElementById("claimCodeInput").value);
+      applyClaimResult(pending.playerIndex, pending.timing, { bombs, codes });
+    }
+
+    function skipDeclaration() {
+      const pending = game.pendingClaim;
+      if (!pending) return;
+      applyClaimResult(pending.playerIndex, pending.timing, null);
+    }
+
+    function applyClaimResult(playerIdx, timing, claimData) {
+      const p = game.players[playerIdx];
+      game.pendingClaim = null;
+      closeModal("claimModal");
+
+      if (timing === "initial") {
+        p.initialClaim = claimData;
+        if (claimData) {
+          addLog(`【初期申告】${p.name}：爆弾 ${claimData.bombs}個 / 解除コード ${claimData.codes}個`, false);
+        } else {
+          addLog(`【初期申告】${p.name}：申告なし`, false);
+        }
+
+        const nextUnpeeked = game.peekedInitial.findIndex((done) => !done);
+        if (nextUnpeeked !== -1) {
+          openInitialPeek(nextUnpeeked);
+          renderAll();
+          return;
+        }
+
+        game.phase = "discussion";
+        game.discussionAfterLap = 0;
+        addLog("全員の初期導線確認・申告が完了！最初の議論タイム（01:30）を開始します。", false);
+        startTimer(90);
+        renderAll();
+        return;
+      }
+
+      if (timing === "lap1_end") {
+        p.lap1EndClaim = claimData;
+        if (claimData) {
+          addLog(`【1周目終了時 申告】${p.name}：爆弾 ${claimData.bombs}個 / 解除コード ${claimData.codes}個`, false);
+        } else {
+          addLog(`【1周目終了時 申告】${p.name}：申告なし`, false);
+        }
+        renderAll();
+      }
+    }
+
+    // 選択・ターゲット操作
+    function clearSelection() {
+      if (!game) return;
+      game.selectedCardUid = null;
+      game.basicCutMode = false;
+      game.selectedTargets = [];
+      renderAll();
+    }
+
+    function selectHandCard(uid) {
+      if (!game || game.phase !== "action" || game.winner) return;
+      const actor = game.players[game.turnIndex];
+      if (game.viewingPlayerIndex !== actor.index) {
+        addLog(`現在は ${actor.name} の手番です。視点を ${actor.name} に合わせて操作してください。`, true);
+        renderAll();
+        return;
+      }
+      const card = actor.hand.find((c) => c.uid === uid);
+      if (!card) return;
+      if (card.lastOnly && actor.hand.length !== 1) return;
+
+      game.basicCutMode = false;
+      game.selectedCardUid = game.selectedCardUid === uid ? null : uid;
+      game.selectedTargets = [];
+      renderAll();
+    }
+
+    function selectBasicCut() {
+      if (!game || game.phase !== "action" || game.winner) return;
+      const actor = game.players[game.turnIndex];
+      if (game.viewingPlayerIndex !== actor.index) return;
+      if (actor.hand.length === 0) return;
+
+      game.selectedCardUid = null;
+      game.basicCutMode = !game.basicCutMode;
+      game.selectedTargets = [];
+      renderAll();
+    }
+
+    function getCurrentModeSpec() {
+      if (!game) return null;
+      const actor = game.players[game.turnIndex];
+      if (game.basicCutMode) {
+        return { mode: "basic_cut", needCardDiscard: true, needWireTarget: 1, allowSelfWire: false, needPlayerTarget: 0 };
+      }
+      if (!game.selectedCardUid) return null;
+      const card = actor.hand.find((c) => c.uid === game.selectedCardUid);
+      if (!card) return null;
+
+      switch (card.type) {
+        case "cut":
+          return { mode: "cut", card, needWireTarget: 1, allowSelfWire: false };
+        case "double_cut":
+          return { mode: "double_cut", card, needWireTarget: 2, allowSelfWire: false, optionalSecond: true };
+        case "thermo":
+          return { mode: "thermo", card, needWireTarget: 1, allowSelfWire: false };
+        case "wiretap":
+          return { mode: "wiretap", card, needPlayerTarget: 1, allowSelfPlayer: false };
+        case "swap_wire":
+          return { mode: "swap_wire", card, needWireTarget: 1, onlyAdjacentWire: true };
+        case "shuffle_wire":
+          return { mode: "shuffle_wire", card, needPlayerTarget: 1, allowSelfPlayer: true };
+        case "surik":
+          return { mode: "surik", card, needPlayerTarget: 1, allowSelfPlayer: false };
+        case "rumor":
+          return { mode: "rumor", card, needPlayerTarget: 1, allowSelfPlayer: false };
+        case "dog":
+          return { mode: "dog", card, needDogTarget: true };
+        case "mole":
+        case "defuse_key":
+        case "detonator":
+          return { mode: "instant", card };
+        default:
+          return null;
+      }
+    }
+
+    function isAdjacentPlayer(aIdx, bIdx) {
+      const n = game.playerCount;
+      const left = (aIdx - 1 + n) % n;
+      const right = (aIdx + 1) % n;
+      return bIdx === left || bIdx === right;
+    }
+
+    function onWireClick(playerIdx, wireIdx) {
+      if (!game || game.phase !== "action" || game.winner) return;
+      const spec = getCurrentModeSpec();
+      if (!spec) return;
+
+      const actorIdx = game.turnIndex;
+      const targetPlayer = game.players[playerIdx];
+      const wire = targetPlayer.wires[wireIdx];
+      if (!wire || wire.revealed) return;
+
+      if (spec.needWireTarget) {
+        if (!spec.allowSelfWire && playerIdx === actorIdx) return;
+        if (spec.onlyAdjacentWire && !isAdjacentPlayer(actorIdx, playerIdx)) return;
+
+        const existingIdx = game.selectedTargets.findIndex(
+          (t) => t.playerIdx === playerIdx && t.wireId === wire.id
+        );
+        if (existingIdx !== -1) {
+          game.selectedTargets.splice(existingIdx, 1);
+        } else {
+          if (game.selectedTargets.length >= spec.needWireTarget) {
+            game.selectedTargets.shift();
+          }
+          game.selectedTargets.push({ playerIdx, wireId: wire.id });
+        }
+        renderAll();
+        return;
+      }
+
+      if (spec.needDogTarget) {
+        if (playerIdx === actorIdx) return;
+        game.selectedTargets = [{ kind: "wire", playerIdx, wireId: wire.id }];
+        renderAll();
+      }
+    }
+
+    function onPlayerCardClick(playerIdx) {
+      if (!game || game.phase !== "action" || game.winner) return;
+      const spec = getCurrentModeSpec();
+      if (!spec || !spec.needPlayerTarget) return;
+
+      const actorIdx = game.turnIndex;
+      if (!spec.allowSelfPlayer && playerIdx === actorIdx) return;
+
+      game.selectedTargets = [{ playerIdx }];
+      renderAll();
+    }
+
+    function pickDogHandTarget(targetPlayerIdx) {
+      if (!game || game.phase !== "action" || game.winner) return;
+      const target = game.players[targetPlayerIdx];
+      if (target.hand.length === 0) return;
+      const randomHandIdx = Math.floor(Math.random() * target.hand.length);
+      game.selectedTargets = [{ kind: "hand", playerIdx: targetPlayerIdx, handIndex: randomHandIdx }];
+      renderAll();
+    }
+
+    function canExecute(spec) {
+      if (!spec) return false;
+      const actor = game.players[game.turnIndex];
+      if (spec.mode === "basic_cut") {
+        return actor.hand.length > 0 && game.selectedTargets.length === 1;
+      }
+      if (spec.mode === "instant") {
+        return true;
+      }
+      if (spec.needWireTarget) {
+        if (spec.optionalSecond) {
+          return game.selectedTargets.length >= 1 && game.selectedTargets.length <= spec.needWireTarget;
+        }
+        return game.selectedTargets.length === spec.needWireTarget;
+      }
+      if (spec.needPlayerTarget) {
+        return game.selectedTargets.length === 1;
+      }
+      if (spec.needDogTarget) {
+        return game.selectedTargets.length === 1;
+      }
+      return false;
+    }
+
+    function revealWire(playerIdx, wireId, countAsCut = true) {
+      const p = game.players[playerIdx];
+      const w = p.wires.find((item) => item.id === wireId);
+      if (!w || w.revealed) return null;
+      w.revealed = true;
+      if (countAsCut && w.kind === "code") {
+        game.revealedCodes += 1;
+      }
+      return w;
+    }
+
+    function checkImmediateWinAfterWireReveal(w, actorName, targetName) {
+      if (!w) return false;
+      if (w.kind === "bomb") {
+        endGame("bomber", `${actorName} が ${targetName} の導線をカットし、【時限爆弾】が爆発しました！`);
+        return true;
+      }
+      if (game.revealedCodes >= game.cfg.winCodes) {
+        endGame("cop", `【解除コード】が規定枚数（${game.cfg.winCodes}枚）揃い、爆弾の解除に成功しました！`);
+        return true;
+      }
+      return false;
+    }
+
+    function executeSelectedAction() {
+      const spec = getCurrentModeSpec();
+      if (!canExecute(spec)) return;
+
+      const actor = game.players[game.turnIndex];
+
+      // 基本カット
+      if (spec.mode === "basic_cut") {
+        actor.hand.pop();
+        const t = game.selectedTargets[0];
+        const targetPlayer = game.players[t.playerIdx];
+        const w = revealWire(t.playerIdx, t.wireId, true);
+        addLog(`${actor.name} が手札を1枚捨てて基本カットを実行 → ${targetPlayer.name} の導線は【${WIRE_LABELS[w.kind]}】！`, false);
+        clearSelection();
+        if (!checkImmediateWinAfterWireReveal(w, actor.name, targetPlayer.name)) {
+          advanceTurn();
+        }
+        renderAll();
+        return;
+      }
+
+      const cardIdx = actor.hand.findIndex((c) => c.uid === spec.card.uid);
+      if (cardIdx === -1) return;
+      const [usedCard] = actor.hand.splice(cardIdx, 1);
+
+      // 1. カット
+      if (usedCard.type === "cut") {
+        const t = game.selectedTargets[0];
+        const targetPlayer = game.players[t.playerIdx];
+        const w = revealWire(t.playerIdx, t.wireId, true);
+        addLog(`${actor.name} が「カット」を使用 → ${targetPlayer.name} の導線は【${WIRE_LABELS[w.kind]}】！`, false);
+        clearSelection();
+        if (!checkImmediateWinAfterWireReveal(w, actor.name, targetPlayer.name)) {
+          advanceTurn();
+        }
+        renderAll();
+        return;
+      }
+
+      // 2. ダブル・カット
+      if (usedCard.type === "double_cut") {
+        addLog(`${actor.name} が「ダブル・カット」を使用（${game.selectedTargets.length}枚選択）。`, false);
+        const targetsCopy = [...game.selectedTargets];
+        clearSelection();
+        for (const t of targetsCopy) {
+          const targetPlayer = game.players[t.playerIdx];
+          const w = revealWire(t.playerIdx, t.wireId, true);
+          if (!w) continue;
+          addLog(`→ ${targetPlayer.name} の導線から【${WIRE_LABELS[w.kind]}】が出現！`, false);
+          if (checkImmediateWinAfterWireReveal(w, actor.name, targetPlayer.name)) {
+            renderAll();
+            return;
+          }
+        }
+        advanceTurn();
+        renderAll();
+        return;
+      }
+
+      // 3. サーモグラフィ
+      if (usedCard.type === "thermo") {
+        const t = game.selectedTargets[0];
+        const targetPlayer = game.players[t.playerIdx];
+        const w = targetPlayer.wires.find((item) => item.id === t.wireId);
+        actor.memosByViewer[w.id] = w.kind;
+        addLog(`${actor.name} が ${targetPlayer.name} の導線1枚に「サーモグラフィ」を使用（本人確認中）。`, false);
+        addLog(`【秘密】${targetPlayer.name} の導線は【${WIRE_LABELS[w.kind]}】でした。`, true);
+        clearSelection();
+        enqueuePeek({
+          kind: "thermo",
+          title: `サーモグラフィ結果（${actor.name} のみ表示）`,
+          subtitle: `${targetPlayer.name} の選択した導線の中身です。確認したらOKを押してください。`,
+          items: [`【${WIRE_LABELS[w.kind]}】`]
+        });
+        renderAll();
+        return;
+      }
+
+      // 4. 盗聴器
+      if (usedCard.type === "wiretap") {
+        const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
+        const names = targetPlayer.hand.map((c) => c.name);
+        addLog(`${actor.name} が ${targetPlayer.name} に「盗聴器」を使用（本人確認中）。`, false);
+        addLog(`【秘密】${targetPlayer.name} の手札：${names.length ? names.join(" / ") : "なし"}`, true);
+        clearSelection();
+        enqueuePeek({
+          kind: "wiretap",
+          title: `盗聴器結果（${actor.name} のみ表示）`,
+          subtitle: `${targetPlayer.name} の現在のアクション手札一覧です。`,
+          items: names.length ? names : ["手札なし"]
+        });
+        renderAll();
+        return;
+      }
+
+      // 5. 配線のすり替え
+      if (usedCard.type === "swap_wire") {
+        const t = game.selectedTargets[0];
+        const targetPlayer = game.players[t.playerIdx];
+        const myUnrevealedIdx = actor.wires.findIndex((w) => !w.revealed);
+        const targetWireIdx = targetPlayer.wires.findIndex((w) => w.id === t.wireId);
+        if (myUnrevealedIdx !== -1 && targetWireIdx !== -1) {
+          const temp = actor.wires[myUnrevealedIdx];
+          actor.wires[myUnrevealedIdx] = targetPlayer.wires[targetWireIdx];
+          targetPlayer.wires[targetWireIdx] = temp;
+          delete actor.memosByViewer[actor.wires[myUnrevealedIdx].id];
+          delete targetPlayer.memosByViewer[targetPlayer.wires[targetWireIdx].id];
+        }
+        addLog(`${actor.name} が「配線のすり替え」で ${targetPlayer.name} と裏向き導線を1枚交換しました。`, false);
+        clearSelection();
+        advanceTurn();
+        renderAll();
+        return;
+      }
+
+      // 6. 緊急シャッフル
+      if (usedCard.type === "shuffle_wire") {
+        const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
+        targetPlayer.wires = shuffleArray(targetPlayer.wires);
+        targetPlayer.wires.forEach((w) => {
+          if (!w.revealed) delete actor.memosByViewer[w.id];
+        });
+        addLog(`${actor.name} が ${targetPlayer.name} の導線を「緊急シャッフル」で混ぜ直しました。`, false);
+        clearSelection();
+        advanceTurn();
+        renderAll();
+        return;
+      }
+
+      // 7. スリ
+      if (usedCard.type === "surik") {
+        const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
+        if (targetPlayer.hand.length === 0) {
+          addLog(`${actor.name} が ${targetPlayer.name} に「スリ」を使いましたが、相手の手札がありませんでした。`, false);
+          clearSelection();
+          advanceTurn();
+          renderAll();
+          return;
+        }
+        const randIdx = Math.floor(Math.random() * targetPlayer.hand.length);
+        const [stolenCard] = targetPlayer.hand.splice(randIdx, 1);
+        actor.hand.push(stolenCard);
+
+        game.pendingSurik = {
+          actorIndex: actor.index,
+          targetIndex: targetPlayer.index,
+          stolenCard,
+          selectedGiveUid: null
+        };
+        addLog(`${actor.name} が ${targetPlayer.name} に「スリ」を実行（渡すカードを選択中）。`, false);
+        clearSelection();
+        openSurikModal();
+        renderAll();
+        return;
+      }
+
+      // 8. うわさ
+      if (usedCard.type === "rumor") {
+        const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
+        if (actor.hand.length === 0 || targetPlayer.hand.length === 0) {
+          addLog(`${actor.name} と ${targetPlayer.name} が「うわさ」を試みましたが、手札不足で交換できませんでした。`, false);
+        } else {
+          const myRand = Math.floor(Math.random() * actor.hand.length);
+          const theirRand = Math.floor(Math.random() * targetPlayer.hand.length);
+          const [fromMe] = actor.hand.splice(myRand, 1);
+          const [fromThem] = targetPlayer.hand.splice(theirRand, 1);
+          actor.hand.push(fromThem);
+          targetPlayer.hand.push(fromMe);
+          addLog(`${actor.name} が ${targetPlayer.name} に「うわさ」を使用！お互いの手札からランダムに1枚ずつ強制交換しました。`, false);
+        }
+        clearSelection();
+        advanceTurn();
+        renderAll();
+        return;
+      }
+
+      // 9. 警察犬
+      if (usedCard.type === "dog") {
+        const t = game.selectedTargets[0];
+        const targetPlayer = game.players[t.playerIdx];
+        if (t.kind === "hand") {
+          const pickedCard = targetPlayer.hand[t.handIndex];
+          if (pickedCard && pickedCard.type === "detonator") {
+            addLog(`${actor.name} が「警察犬」で ${targetPlayer.name} の手札から【起爆スイッチ】を探知！`, false);
+            endGame("cop", `警察犬が【起爆スイッチ】を嗅ぎ当て、捜査官チームの勝利となりました！`);
+            clearSelection();
+            renderAll();
+            return;
+          }
+          addLog(`${actor.name} が「警察犬」で ${targetPlayer.name} の手札を調べましたが、起爆スイッチではありませんでした（手札は元に戻ります）。`, false);
+          clearSelection();
+          advanceTurn();
+          renderAll();
+          return;
+        } else {
+          const w = revealWire(t.playerIdx, t.wireId, true);
+          if (w && w.kind === "bomb") {
+            addLog(`${actor.name} が「警察犬」で ${targetPlayer.name} の導線から【時限爆弾】を探知！`, false);
+            endGame("cop", `警察犬が【時限爆弾】を嗅ぎ当て、爆発を防ぐことに成功！捜査官チームの勝利です！`);
+            clearSelection();
+            renderAll();
+            return;
+          }
+          addLog(`${actor.name} が「警察犬」で ${targetPlayer.name} の導線を調べましたが、爆弾ではありませんでした（【${WIRE_LABELS[w.kind]}】を表向きにしました）。`, false);
+          clearSelection();
+          if (!checkImmediateWinAfterWireReveal(w, actor.name, targetPlayer.name)) {
+            advanceTurn();
+          }
+          renderAll();
+          return;
+        }
+      }
+
+      // 10. 内通者の密書
+      if (usedCard.type === "mole") {
+        actor.role = "bomber";
+        addLog(`${actor.name} が「内通者の密書」を使用！陣営が「爆弾魔」になりました。`, false);
+        clearSelection();
+        advanceTurn();
+        renderAll();
+        return;
+      }
+
+      // 11. 解除成功
+      if (usedCard.type === "defuse_key") {
+        if (actor.role === "cop") {
+          addLog(`${actor.name} が最後の1枚「解除成功」を発動！`, false);
+          endGame("cop", `${actor.name}（捜査官）が最後の1枚「解除成功」を発動し、捜査官チームの勝利！`);
+        } else {
+          addLog(`${actor.name} が「解除成功」を出しましたが、爆弾魔のため効果がありませんでした！`, false);
+          clearSelection();
+          advanceTurn();
+        }
+        renderAll();
+        return;
+      }
+
+      // 12. 起爆スイッチ
+      if (usedCard.type === "detonator") {
+        if (actor.role === "bomber") {
+          addLog(`${actor.name} が最後の1枚「起爆スイッチ」を発動！`, false);
+          endGame("bomber", `${actor.name}（爆弾魔）が最後の1枚「起爆スイッチ」を発動し、爆弾魔チームの勝利！`);
+        } else {
+          addLog(`${actor.name} が「起爆スイッチ」を出しましたが、捜査官のため効果がありませんでした！`, false);
+          clearSelection();
+          advanceTurn();
+        }
+        renderAll();
+      }
+    }
+
+    // スリモーダル処理
+    function openSurikModal() {
+      const s = game.pendingSurik;
+      if (!s) return;
+      const actor = game.players[s.actorIndex];
+      const target = game.players[s.targetIndex];
+      document.getElementById("surikDesc").textContent =
+        `${actor.name} は ${target.name} から「${s.stolenCard.name}」を引きました。${target.name} に渡すカードを自分の手札から1枚選んでください。`;
+      document.getElementById("surikStolenBox").innerHTML =
+        `獲得したカード：<span class="chip">${s.stolenCard.name}</span>`;
+
+      const list = document.getElementById("surikHandChoices");
+      list.innerHTML = "";
+      s.selectedGiveUid = null;
+      document.getElementById("surikConfirmBtn").disabled = true;
+
+      actor.hand.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "choice-btn";
+        btn.textContent = `${c.name} — ${c.desc}`;
+        btn.onclick = () => {
+          s.selectedGiveUid = c.uid;
+          document.querySelectorAll("#surikHandChoices .choice-btn").forEach((el) => el.classList.remove("picked"));
+          btn.classList.add("picked");
+          document.getElementById("surikConfirmBtn").disabled = false;
+        };
+        list.appendChild(btn);
+      });
+
+      document.getElementById("surikModal").classList.add("open");
+    }
+
+    function confirmSurikGive() {
+      const s = game.pendingSurik;
+      if (!s || !s.selectedGiveUid) return;
+      const actor = game.players[s.actorIndex];
+      const target = game.players[s.targetIndex];
+      const idx = actor.hand.findIndex((c) => c.uid === s.selectedGiveUid);
+      if (idx !== -1) {
+        const [given] = actor.hand.splice(idx, 1);
+        target.hand.push(given);
+        addLog(`${actor.name} が ${target.name} から1枚奪い、${target.name} にカードを1枚渡しました。`, false);
+      }
+      game.pendingSurik = null;
+      closeModal("surikModal");
+      advanceTurn();
+      renderAll();
+    }
+
+    // ターン進行・周回・議論タイム
+    function advanceTurn() {
+      if (!game || game.winner) return;
+      game.turnsInCurrentLap += 1;
+
+      if (game.turnsInCurrentLap >= game.playerCount) {
+        if (game.lap < 3) {
+          const finishedLap = game.lap;
+          game.lap += 1;
+          game.turnsInCurrentLap = 0;
+          game.turnIndex = 0;
+          game.viewingPlayerIndex = 0;
+          game.phase = "discussion";
+          game.discussionAfterLap = finishedLap;
+
+          if (finishedLap === 1 && game.mode === "standard") {
+            addLog(`1周目が終了！スタンダードモードのため、議論タイム中に各自1回だけ自分の場札を確認＆自己申告できます。`, false);
+          } else {
+            addLog(`${finishedLap}周目が終了！1分間の議論タイムに入ります（次は${game.lap}周目）。`, false);
+          }
+          startTimer(60);
+          renderAll();
+          return;
+        } else {
+          endGame("bomber", `全3周が終了し、解除コードが規定枚数（${game.cfg.winCodes}枚）に届かなかったため、時間切れで爆弾魔チームの勝利です！`);
+          return;
+        }
+      }
+
+      game.turnIndex = (game.turnIndex + 1) % game.playerCount;
+      game.viewingPlayerIndex = game.turnIndex;
+      renderAll();
+    }
+
+    function endGame(winner, reason) {
+      if (!game || game.winner) return;
+      stopTimer();
+      game.winner = winner;
+      game.winReason = reason;
+      game.phase = "ended";
+      addLog(`【決着】${reason}`, false);
+      renderAll();
+      openResultModal();
+    }
+
+    function openResultModal() {
+      if (!game) return;
+      const titleEl = document.getElementById("resultTitle");
+      if (game.winner === "cop") {
+        titleEl.textContent = "🚨 捜査官チームの勝利！";
+        titleEl.style.color = "#7dd3fc";
+      } else {
+        titleEl.textContent = "💣 爆弾魔チームの勝利！";
+        titleEl.style.color = "#fca5a5";
+      }
+      document.getElementById("resultReason").textContent = game.winReason;
+
+      let rowsHtml = `
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th>席順・名前</th>
+              <th>初期役職</th>
+              <th>最終役職</th>
+              <th>自己申告履歴</th>
+              <th>導線カード（全公開）</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      game.players.forEach((p) => {
+        const initLabel = p.initialRole === "cop" ? "捜査官" : "爆弾魔";
+        const finalLabel = p.role === "cop" ? "捜査官" : "爆弾魔";
+        const changed = p.initialRole !== p.role ? "（密書で変化）" : "";
+        const c1 = p.initialClaim ? `初:爆${p.initialClaim.bombs}/解${p.initialClaim.codes}` : "初:なし";
+        const c2 = p.lap1EndClaim ? `1周後:爆${p.lap1EndClaim.bombs}/解${p.lap1EndClaim.codes}` : "";
+        const claimStr = [c1, c2].filter(Boolean).join(" / ");
+        const wiresText = p.wires.map((w, i) => `導線${i + 1}:【${WIRE_LABELS[w.kind]}】`).join(" / ");
+        rowsHtml += `
+          <tr>
+            <td><strong>#${p.index + 1} ${p.name}</strong></td>
+            <td>${initLabel}</td>
+            <td><strong>${finalLabel}</strong>${changed}</td>
+            <td>${claimStr}</td>
+            <td>${wiresText}</td>
+          </tr>
+        `;
+      });
+      rowsHtml += `</tbody></table>`;
+      document.getElementById("resultTableWrap").innerHTML = rowsHtml;
+      document.getElementById("resultModal").classList.add("open");
+    }
+
+    function openAllLogsModal() {
+      if (!game) return;
+      const wrap = document.getElementById("allLogsContent");
+      wrap.innerHTML = game.logs
+        .map((l) => `<div class="chip ${l.secret ? "log-secret" : ""}">[${l.time}] ${l.text}</div>`)
+        .join("");
+      document.getElementById("allLogsModal").classList.add("open");
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove("open");
+    }
+
+    function closeAllModals() {
+      ["peekModal", "claimModal", "surikModal", "allLogsModal", "resultModal"].forEach(closeModal);
+    }
+
+    function switchViewTo(playerIdx) {
+      if (!game) return;
+      game.viewingPlayerIndex = playerIdx;
+      clearSelection();
+    }
+
+    function toggleRoleVisibility(playerIdx) {
+      if (!game) return;
+      game.players[playerIdx].roleVisible = !game.players[playerIdx].roleVisible;
+      renderAll();
+    }
+
+    // 描画処理
+    function renderAll() {
+      if (!game) return;
+
+      // ① ヘッダー
+      document.getElementById("roundBadge").textContent = `${game.lap}周目 / 全3周`;
+      const phaseMap = {
+        initial_peek: "初期確認・申告中",
+        discussion: "議論タイム",
+        action: `${game.players[game.turnIndex].name} の手番`,
+        ended: "ゲーム終了"
+      };
+      document.getElementById("phaseBadge").textContent = phaseMap[game.phase] || game.phase;
+      document.getElementById("codeBadge").textContent = `解除コード: ${game.revealedCodes} / ${game.cfg.winCodes}`;
+      document.getElementById("modeCaption").textContent =
+        `${game.mode === "light" ? "ライト（場札2枚）" : "スタンダード（場札3枚・1周目後確認あり）"} / 勝利必要コード：${game.cfg.winCodes}枚`;
+      updateTimerDisplay();
+
+      // 議論バナー
+      const bannerEl = document.getElementById("discussionBanner");
+      const bannerTextEl = document.getElementById("discussionBannerText");
+      const bannerBtnsEl = document.getElementById("discussionActionButtons");
+
+      if (game.phase === "discussion") {
+        bannerEl.style.display = "flex";
+        const viewer = game.players[game.viewingPlayerIndex];
+        if (game.mode === "standard" && game.discussionAfterLap === 1) {
+          bannerTextEl.textContent = `【1周目終了 議論タイム】3枚モード特典：視点中の ${viewer.name} は自分の場札確認＆自己申告（嘘OK）が可能です。`;
+          if (!viewer.usedLap1EndCheck) {
+            bannerBtnsEl.innerHTML = `<button type="button" class="primary" onclick="openLap1EndWireCheck()">自分の場札を確認＆申告する（${viewer.name}）</button>`;
+          } else {
+            bannerBtnsEl.innerHTML = `<span class="badge">確認・申告済み（${viewer.name}）</span>`;
+          }
+        } else {
+          bannerTextEl.textContent = `議論タイム中です。通話で推理や交渉を行い、終わったら「議論終了」を押してください。`;
+          bannerBtnsEl.innerHTML = "";
+        }
+      } else {
+        bannerEl.style.display = "none";
+      }
+
+      const actor = game.players[game.turnIndex];
+      document.getElementById("turnGuideText").textContent =
+        game.phase === "action"
+          ? `現在の手番：席順${actor.index + 1} ${actor.name}（残り手札 ${actor.hand.length}枚）`
+          : `フェーズ：${phaseMap[game.phase]}`;
+
+      // ② 盤面（プレイヤー一覧）
+      const spec = getCurrentModeSpec();
+      const grid = document.getElementById("playersGrid");
+      grid.innerHTML = "";
+
+      game.players.forEach((p, idx) => {
+        const cardEl = document.createElement("div");
+        const isTurn = game.phase === "action" && idx === game.turnIndex;
+        const canSelectPlayer =
+          game.phase === "action" &&
+          spec &&
+          spec.needPlayerTarget &&
+          (spec.allowSelfPlayer || idx !== game.turnIndex);
+
+        cardEl.className =
+          "player-card" +
+          (isTurn ? " active-turn" : "") +
+          (canSelectPlayer ? " selectable-target" : "");
+
+        if (canSelectPlayer) {
+          cardEl.onclick = () => onPlayerCardClick(idx);
+        }
+
+        const roleHtml = p.roleVisible
+          ? `<span class="role-tag ${p.role === "cop" ? "role-cop" : "role-bomber"}">${p.role === "cop" ? "捜査官" : "爆弾魔"}</span>`
+          : `<span class="role-tag role-hidden">役職非表示</span>`;
+
+        const wiresHtml = p.wires
+          .map((w, wIdx) => {
+            let cls = "wire-slot ";
+            let label = `導線${wIdx + 1}`;
+            let pickable = false;
+
+            if (w.revealed) {
+              if (w.kind === "code") {
+                cls += "wire-revealed-code";
+                label = "解除コード";
+              } else if (w.kind === "bomb") {
+                cls += "wire-revealed-bomb";
+                label = "時限爆弾";
+              } else {
+                cls += "wire-revealed-safe";
+                label = "安全";
+              }
+            } else {
+              cls += "wire-hidden";
+              if (game.phase === "action" && spec) {
+                if (spec.needWireTarget) {
+                  const okSelf = spec.allowSelfWire || idx !== game.turnIndex;
+                  const okAdj = !spec.onlyAdjacentWire || isAdjacentPlayer(game.turnIndex, idx);
+                  if (okSelf && okAdj) pickable = true;
+                } else if (spec.needDogTarget && idx !== game.turnIndex) {
+                  pickable = true;
+                }
+              }
+              if (pickable) cls += " pickable";
+              const isSelected = game.selectedTargets.some((t) => t.wireId === w.id);
+              if (isSelected) cls += " selected";
+            }
+
+            const viewer = game.players[game.viewingPlayerIndex];
+            const memoKind = !w.revealed && viewer ? viewer.memosByViewer[w.id] : null;
+            const memoHtml = memoKind ? `<span class="memo-badge">🔍${WIRE_LABELS[memoKind]}</span>` : "";
+
+            const clickAttr = pickable ? `onclick="event.stopPropagation(); onWireClick(${idx}, ${wIdx})"` : "";
+            return `<div class="${cls}" ${clickAttr}><span>${label}</span>${memoHtml}</div>`;
+          })
+          .join("");
+
+        const canDogHand =
+          game.phase === "action" && spec && spec.needDogTarget && idx !== game.turnIndex && p.hand.length > 0;
+
+        const c1Text = p.initialClaim ? `初期申告：爆${p.initialClaim.bombs} / 解${p.initialClaim.codes}` : "初期申告：未入力";
+        const c2Text = p.lap1EndClaim ? `1周後申告：爆${p.lap1EndClaim.bombs} / 解${p.lap1EndClaim.codes}` : "";
+        const claimHtml = `<div class="claim-box">${c1Text}${c2Text ? `<br/>${c2Text}` : ""}</div>`;
+
+        cardEl.innerHTML = `
+          <div class="player-top">
+            <div class="seat-name">
+              <span class="seat-num">${idx + 1}</span>
+              <span>${p.name}</span>
+            </div>
+            <button type="button" style="padding: 3px 7px; font-size: 0.72rem;" onclick="event.stopPropagation(); switchViewTo(${idx})">
+              視点切替
+            </button>
+          </div>
+          <div class="role-row">
+            ${roleHtml}
+            <button type="button" style="padding: 2px 6px; font-size: 0.7rem;" onclick="event.stopPropagation(); toggleRoleVisibility(${idx})">
+              ${p.roleVisible ? "隠す" : "表示"}
+            </button>
+          </div>
+          <div class="wires-row">${wiresHtml}</div>
+          <div class="player-meta">
+            <span>手札：<strong>${p.hand.length}</strong>枚 ${p.hand.length === 1 ? '<span class="last-card-pill">★ラスト1枚</span>' : ""}</span>
+            ${canDogHand ? `<button type="button" class="warn" style="padding: 2px 7px; font-size: 0.72rem;" onclick="event.stopPropagation(); pickDogHandTarget(${idx})">犬で手札狙い</button>` : ""}
+          </div>
+          ${claimHtml}
+        `;
+        grid.appendChild(cardEl);
+      });
+
+      // ③ 行動ログ
+      const logBox = document.getElementById("logBox");
+      logBox.innerHTML = game.logs
+        .slice(0, 8)
+        .map((l) => `<div class="log-item ${l.secret ? "log-secret" : ""}">[${l.time}] ${l.text}</div>`)
+        .join("");
+
+      // ④ 自分のアクション手札エリア
+      const viewer = game.players[game.viewingPlayerIndex];
+      const isViewerTurn = game.phase === "action" && game.viewingPlayerIndex === game.turnIndex;
+
+      document.getElementById("viewingPlayerLabel").textContent =
+        `視点：席順${viewer.index + 1} ${viewer.name}`;
+      document.getElementById("viewingPlayerRoleHint").innerHTML =
+        `役職：<strong style="color:${viewer.role === "cop" ? "#7dd3fc" : "#fca5a5"}">${viewer.role === "cop" ? "捜査官" : "爆弾魔"}</strong>` +
+        (isViewerTurn ? ` <span class="badge turn" style="padding: 2px 7px;">あなたのターン</span>` : "");
+
+      document.getElementById("handSubInfo").textContent =
+        `手札残り：${viewer.hand.length}枚` + (viewer.hand.length === 1 ? "（ラスト1枚：必殺カード使用可能）" : "");
+
+      const handCardsEl = document.getElementById("handCards");
+      handCardsEl.innerHTML = "";
+      viewer.hand.forEach((c) => {
+        const lockedLastOnly = c.lastOnly && viewer.hand.length !== 1;
+        const disabled = !isViewerTurn || lockedLastOnly;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className =
+          "hand-card" +
+          (game.selectedCardUid === c.uid ? " selected" : "") +
+          (disabled ? " disabled-card" : "");
+        btn.disabled = disabled;
+        btn.onclick = () => selectHandCard(c.uid);
+        btn.innerHTML = `
+          <div>
+            <div class="card-title">${c.name}</div>
+            <div class="card-desc">${c.desc}</div>
+          </div>
+          <div style="font-size: 0.68rem; color: var(--accent); margin-top: 4px;">
+            ${lockedLastOnly ? "※手札1枚時のみ" : game.selectedCardUid === c.uid ? "選択中" : ""}
+          </div>
+        `;
+        handCardsEl.appendChild(btn);
+      });
+
+      const statusEl = document.getElementById("selectionStatus");
+      if (game.phase !== "action") {
+        statusEl.textContent =
+          game.phase === "discussion"
+            ? "議論タイム中です。話し合いが終わったら「議論終了」を押してください。"
+            : "初期導線確認・申告中、またはゲーム終了です。";
+      } else if (!isViewerTurn) {
+        statusEl.textContent = `現在は ${actor.name} の手番です。上の「視点切替」から ${actor.name} を選んで操作してください。`;
+      } else if (game.basicCutMode) {
+        statusEl.textContent =
+          game.selectedTargets.length === 1
+            ? "基本カットの対象導線を選択済み。「決定（実行）」を押してください。"
+            : "手札を1枚裏向きで捨ててカットします。自分以外の裏向き導線を1枚選んでください。";
+      } else if (spec) {
+        if (spec.mode === "instant") {
+          statusEl.textContent = `「${spec.card.name}」を選択中。「決定（実行）」で発動します。`;
+        } else if (spec.needWireTarget) {
+          const hint = spec.onlyAdjacentWire
+            ? "右隣または左隣のプレイヤーの裏向き導線を1枚選んでください。"
+            : spec.optionalSecond
+              ? "裏向き導線を1〜2枚選んでください。"
+              : "自分以外の裏向き導線を1枚選んでください。";
+          statusEl.textContent = `「${spec.card.name}」選択中：${hint}`;
+        } else if (spec.needPlayerTarget) {
+          statusEl.textContent = `「${spec.card.name}」選択中：対象プレイヤー枠をタップして選んでください。`;
+        } else if (spec.needDogTarget) {
+          statusEl.textContent = `「警察犬」選択中：他人の裏向き導線1枚をタップするか、「犬で手札狙い」を押してください。`;
+        }
+      } else {
+        statusEl.textContent = "手札カードを1枚選ぶか、「基本カット」を押してください。";
+      }
+
+      const basicBtn = document.getElementById("basicCutBtn");
+      basicBtn.disabled = !isViewerTurn || viewer.hand.length === 0;
+      basicBtn.classList.toggle("active", game.basicCutMode);
+
+      document.getElementById("executeBtn").disabled = !isViewerTurn || !canExecute(spec);
+    }
+
+    initSetupUI();
+  </script>
+</body>
+</html>
