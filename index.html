@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>爆弾は踊る v9（プロトタイプ）</title>
+  <title>爆弾は踊る v10（プロトタイプ）</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -1218,7 +1218,7 @@
 <body>
   <!-- セットアップ画面 -->
   <div id="setupScreen" class="setup-wrap">
-    <h1>爆弾は踊る <span class="title-ver">v9</span></h1>
+    <h1>爆弾は踊る <span class="title-ver">v10</span></h1>
     <p class="sub">ブラウザ単体テスト版｜1人でも各プレイヤーの手番を切り替えながら全ルールを確認できます</p>
 
     <div class="form-row">
@@ -1255,7 +1255,7 @@
     <!-- ① ヘッダー -->
     <header class="zone-header">
       <div class="header-left">
-        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v9</span></span>
+        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v10</span></span>
         <span id="roundBadge" class="badge">1周目 / 全3周</span>
         <span id="phaseBadge" class="badge turn">進行中</span>
         <span id="codeBadge" class="badge code">解除コード: 0 / 3</span>
@@ -1316,8 +1316,8 @@
           <button type="button" id="cancelTurnStepBtn" onclick="cancelSelectionOrPlayed()" style="display: none;">
             選択解除
           </button>
-          <button type="button" id="faceDownCutBtn" onclick="commitFaceDownCut()" style="display: none;">
-            裏向きでカット
+          <button type="button" id="skipCutBtn" onclick="skipOptionalCut()" style="display: none;">
+            切らずに終了
           </button>
           <button type="button" id="primaryStepBtn" class="primary" disabled onclick="handlePrimaryStepButton()">
             場に出す（OK）
@@ -1461,13 +1461,12 @@
 
     // 1. カード定義（全31枚）
     const ACTION_DECK_SPEC = [
-      { id: "cut", name: "カット", type: "cut", count: 8, desc: "自分以外の裏向き導線1枚を表向きにする。" },
-      { id: "double_cut", name: "ダブル・カット", type: "double_cut", count: 2, desc: "裏向き導線を2枚まで表向きにする（同一人物可）。" },
-      { id: "thermo", name: "サーモグラフィ", type: "thermo", count: 4, desc: "自分以外の裏向き導線1枚を自分だけこっそり見る。" },
-      { id: "wiretap", name: "盗聴器", type: "wiretap", count: 3, desc: "自分以外のアクション手札をすべて見る。" },
-      { id: "swap_wire", name: "配線のすり替え", type: "swap_wire", count: 4, desc: "自分の導線1枚と、右隣または左隣の導線1枚を裏向きのまま交換する。" },
-      { id: "shuffle_wire", name: "緊急シャッフル", type: "shuffle_wire", count: 2, desc: "自分を含む誰か1人の導線をすべて混ぜて裏向きで並べ直す。" },
-      { id: "surik", name: "スリ", type: "surik", count: 2, desc: "自分以外の手札からランダムに1枚引き、自分の手札1枚を渡す。" },
+      { id: "double_cut", name: "ダブル・カット", type: "double_cut", count: 3, desc: "裏向き導線を2枚まで表向きにする（同一人物可）。" },
+      { id: "thermo", name: "サーモグラフィ", type: "thermo", count: 6, desc: "自分以外の裏向き導線1枚を自分だけこっそり見る。" },
+      { id: "wiretap", name: "盗聴器", type: "wiretap", count: 5, desc: "自分以外のアクション手札をすべて見る。" },
+      { id: "swap_wire", name: "配線のすり替え", type: "swap_wire", count: 6, desc: "自分の導線1枚と、右隣または左隣の導線1枚を裏向きのまま交換する。" },
+      { id: "shuffle_wire", name: "緊急シャッフル", type: "shuffle_wire", count: 3, desc: "自分を含む誰か1人の導線をすべて混ぜて裏向きで並べ直す。" },
+      { id: "surik", name: "スリ", type: "surik", count: 3, desc: "自分以外の手札からランダムに1枚引き、自分の手札1枚を渡す。" },
       { id: "rumor", name: "うわさ", type: "rumor", count: 2, desc: "自分以外を1人指名し、お互いの手札からランダムに1枚ずつ強制交換する。" },
       { id: "dog", name: "警察犬", type: "dog", count: 1, desc: "自分以外の手札1枚または裏向き導線1枚を指定。起爆スイッチか時限爆弾なら捜査官勝利！" },
       { id: "mole", name: "内通者の密書", type: "mole", count: 1, desc: "使用した瞬間、自分の陣営が「爆弾魔」になる。" },
@@ -1641,6 +1640,59 @@
       return shuffleArray(deck);
     }
 
+    function buildGuaranteedHands(playerCount) {
+      let seq = 1;
+      const makeCard = (spec) => ({
+        uid: `card_${seq++}_${spec.id}`,
+        id: spec.id,
+        name: spec.name,
+        type: spec.type,
+        lastOnly: !!spec.lastOnly,
+        desc: spec.desc
+      });
+
+      const defuseSpec = ACTION_DECK_SPEC.find((s) => s.id === "defuse_key");
+      const detonatorSpec = ACTION_DECK_SPEC.find((s) => s.id === "detonator");
+      const guaranteedCards = [makeCard(defuseSpec), makeCard(detonatorSpec)];
+
+      const pool = [];
+      for (const spec of ACTION_DECK_SPEC) {
+        if (spec.id === "defuse_key" || spec.id === "detonator") continue;
+        for (let i = 0; i < spec.count; i++) {
+          pool.push(makeCard(spec));
+        }
+      }
+      const shuffledPool = shuffleArray(pool);
+
+      const hands = Array.from({ length: playerCount }, () => []);
+      const slotOrder = [];
+      for (let slot = 0; slot < 3; slot++) {
+        for (let p = 0; p < playerCount; p++) {
+          slotOrder.push({ p, slot });
+        }
+      }
+
+      const chosenIndices = shuffleArray(slotOrder).slice(0, 2);
+      const guaranteedMap = new Map();
+      chosenIndices.forEach((pos, idx) => {
+        guaranteedMap.set(`${pos.p}_${pos.slot}`, guaranteedCards[idx]);
+      });
+
+      let poolCursor = 0;
+      for (let slot = 0; slot < 3; slot++) {
+        for (let p = 0; p < playerCount; p++) {
+          const key = `${p}_${slot}`;
+          if (guaranteedMap.has(key)) {
+            hands[p].push(guaranteedMap.get(key));
+          } else {
+            hands[p].push(shuffledPool[poolCursor++]);
+          }
+        }
+      }
+
+      return hands;
+    }
+
     function buildWireDeck(cfg) {
       const deck = [];
       for (let i = 0; i < cfg.bombCount; i++) deck.push("bomb");
@@ -1654,7 +1706,7 @@
       const cfg = getBalanceConfig(n, setupState.mode);
       const roles = shuffleArray(cfg.rolePool);
       const wireDeck = buildWireDeck(cfg);
-      const actionDeck = buildActionDeck();
+      const handsByPlayer = buildGuaranteedHands(n);
 
       const players = [];
       let wireCursor = 0;
@@ -1669,7 +1721,7 @@
             revealed: false
           });
         }
-        const hand = [actionDeck.pop(), actionDeck.pop(), actionDeck.pop()];
+        const hand = handsByPlayer[i];
         const memosByViewer = {};
         myWires.forEach((wr) => {
           memosByViewer[wr.id] = wr.kind;
@@ -1813,12 +1865,22 @@
       renderAll();
     }
 
+    function beginTurnForCurrentActor() {
+      const actor = game.players[game.turnIndex];
+      game.viewingPlayerIndex = actor.index;
+      resetTurnFlow();
+      if (actor.hand.length === 0) {
+        addLog(`${seatMark(actor.index)}${actor.name} は手札がないため、カード使用をスキップしてカット選択へ進みます。`, false);
+        enterOptionalCutStep();
+        return;
+      }
+      renderAll();
+    }
+
     function enterActionPhase() {
       game.phase = "action";
       game.discussionAfterLap = null;
-      game.viewingPlayerIndex = game.turnIndex;
-      resetTurnFlow();
-      renderAll();
+      beginTurnForCurrentActor();
     }
 
     function resetTurnFlow() {
@@ -1921,7 +1983,7 @@
       } else {
         closeModal("peekModal");
         if (game.phase === "action" && !game.winner) {
-          advanceTurn();
+          enterOptionalCutStep();
         }
       }
       renderAll();
@@ -2134,8 +2196,62 @@
       renderAll();
     }
 
+    function enterOptionalCutStep() {
+      if (!game || game.phase !== "action" || game.winner) return;
+      const hasAnyUnrevealedOtherWire = game.players.some(
+        (pl, pIdx) => pIdx !== game.turnIndex && pl.wires.some((w) => !w.revealed)
+      );
+      if (!hasAnyUnrevealedOtherWire) {
+        addLog("切れる裏向き導線がないため、そのまま次の手番へ進みます。", false);
+        advanceTurn();
+        renderAll();
+        return;
+      }
+      game.turnStep = "optional_cut";
+      game.selectedTargets = [];
+      renderAll();
+    }
+
+    function skipOptionalCut() {
+      if (!game || game.phase !== "action" || game.winner) return;
+      if (game.turnStep !== "optional_cut") return;
+      const actor = game.players[game.turnIndex];
+      addLog(`${seatMark(actor.index)}${actor.name} は導線を切らずに手番を終了しました。`, false);
+      resetTurnFlow();
+      advanceTurn();
+      renderAll();
+    }
+
+    function executeOptionalCut() {
+      if (!game || game.phase !== "action" || game.winner) return;
+      if (game.turnStep !== "optional_cut" || game.selectedTargets.length !== 1) return;
+      const actor = game.players[game.turnIndex];
+      const actorLabel = `${seatMark(actor.index)}${actor.name}`;
+      const t = game.selectedTargets[0];
+      const targetPlayer = game.players[t.playerIdx];
+      const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
+      const w = revealWire(t.playerIdx, t.wireId, true);
+      if (!w) return;
+      addLog(`→ ${targetLabel} の導線をカット：【${WIRE_LABELS[w.kind]}】！`, false);
+      const isFinalCode = w.kind === "code" && game.revealedCodes >= game.cfg.winCodes;
+      resetTurnFlow();
+      renderAll();
+      showCutFxSequence(
+        [{ wire: w, targetLabel, isFinalCode, codeCountAfter: game.revealedCodes }],
+        () => {
+          if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
+            advanceTurn();
+          }
+        }
+      );
+    }
+
     function getActiveEffectSpec() {
-      if (!game || game.turnStep !== "pick_target" || !game.playedAction) return null;
+      if (!game || game.phase !== "action" || game.winner) return null;
+      if (game.turnStep === "optional_cut") {
+        return { mode: "optional_cut", needWireTarget: 1, allowSelfWire: false };
+      }
+      if (game.turnStep !== "pick_target" || !game.playedAction) return null;
       if (game.playedAction.kind === "basic_cut") {
         return { mode: "basic_cut", needWireTarget: 1, allowSelfWire: false };
       }
@@ -2183,6 +2299,8 @@
         commitCardToPlay();
       } else if (game.turnStep === "pick_target") {
         executePlayedEffect();
+      } else if (game.turnStep === "optional_cut") {
+        executeOptionalCut();
       }
     }
 
@@ -2267,7 +2385,7 @@
 
     function onWireClick(playerIdx, wireIdx) {
       if (!game || game.phase !== "action" || game.winner) return;
-      if (game.turnStep !== "pick_target") return;
+      if (game.turnStep !== "pick_target" && game.turnStep !== "optional_cut") return;
       const spec = getActiveEffectSpec();
       if (!spec) return;
 
@@ -2304,7 +2422,7 @@
 
     function onPlayerCardClick(playerIdx) {
       if (!game || game.phase !== "action" || game.winner) return;
-      if (game.turnStep !== "pick_target") return;
+      if (game.turnStep !== "pick_target" && game.turnStep !== "optional_cut") return;
       const spec = getActiveEffectSpec();
       if (!spec || !spec.needPlayerTarget) return;
 
@@ -2317,7 +2435,7 @@
 
     function pickDogHandTarget(targetPlayerIdx) {
       if (!game || game.phase !== "action" || game.winner) return;
-      if (game.turnStep !== "pick_target") return;
+      if (game.turnStep !== "pick_target" && game.turnStep !== "optional_cut") return;
       const target = game.players[targetPlayerIdx];
       if (target.hand.length === 0) return;
       const randomHandIdx = Math.floor(Math.random() * target.hand.length);
@@ -2532,7 +2650,7 @@
         return;
       }
 
-      // 2. ダブル・カット
+      // 2. ダブル・カット（カード効果で2枚カット後、さらに1枚切るか選べる）
       if (usedCard.type === "double_cut") {
         const targetsCopy = [...game.selectedTargets];
         resetTurnFlow();
@@ -2557,7 +2675,7 @@
           if (lastEvent && checkImmediateWinAfterWireReveal(lastEvent.w, actorLabel, lastEvent.targetLabel)) {
             return;
           }
-          advanceTurn();
+          enterOptionalCutStep();
         });
         return;
       }
@@ -2616,7 +2734,7 @@
         }
         addLog(`→ ${targetLabel} と裏向き導線を1枚交換しました。`, false);
         resetTurnFlow();
-        advanceTurn();
+        enterOptionalCutStep();
         renderAll();
         return;
       }
@@ -2631,7 +2749,7 @@
         });
         addLog(`→ ${targetLabel} の導線を混ぜ直しました。`, false);
         resetTurnFlow();
-        advanceTurn();
+        enterOptionalCutStep();
         renderAll();
         return;
       }
@@ -2680,7 +2798,7 @@
           addLog(`→ ${targetLabel} とお互いの手札からランダムに1枚ずつ強制交換しました！`, false);
         }
         resetTurnFlow();
-        advanceTurn();
+        enterOptionalCutStep();
         renderAll();
         return;
       }
@@ -2739,7 +2857,7 @@
         actor.role = "bomber";
         addLog(`→ ${actorLabel} の陣営が「爆弾魔」になりました。`, false);
         resetTurnFlow();
-        advanceTurn();
+        enterOptionalCutStep();
         renderAll();
         return;
       }
@@ -2772,7 +2890,7 @@
           endGame("bomber", `${actorLabel}（爆弾魔）が最後の1枚「起爆スイッチ」を発動し、爆弾魔チームの勝利！`);
         } else {
           addLog(`→ 捜査官のため効果がありませんでした！`, false);
-          advanceTurn();
+          enterOptionalCutStep();
         }
         renderAll();
       }
@@ -2824,7 +2942,7 @@
       }
       game.pendingSurik = null;
       closeModal("surikModal");
-      advanceTurn();
+      enterOptionalCutStep();
       renderAll();
     }
 
@@ -2859,9 +2977,7 @@
       }
 
       game.turnIndex = (game.turnIndex + 1) % game.playerCount;
-      game.viewingPlayerIndex = game.turnIndex;
-      resetTurnFlow();
-      renderAll();
+      beginTurnForCurrentActor();
     }
 
     function endGame(winner, reason) {
@@ -3042,7 +3158,7 @@
             }
           } else {
             cls += "wire-hidden";
-            if (game.phase === "action" && game.turnStep === "pick_target" && spec) {
+            if (game.phase === "action" && (game.turnStep === "pick_target" || game.turnStep === "optional_cut") && spec) {
               if (spec.needWireTarget) {
                 const okSelf = spec.allowSelfWire || idx !== game.turnIndex;
                 const okAdj = !spec.onlyAdjacentWire || isAdjacentPlayer(game.turnIndex, idx);
@@ -3372,7 +3488,7 @@
         const c = viewer.hand[slotIdx];
         if (c) {
           const lockedLastOnly = c.lastOnly && viewer.hand.length !== 1;
-          const disabled = !isViewerTurn || game.turnStep !== "pick_card";
+          const disabled = !isViewerTurn || game.turnStep !== "pick_card" || lockedLastOnly;
           const isSelected = game.turnStep === "pick_card" && game.selectedCardUid === c.uid;
           const btn = document.createElement("button");
           btn.type = "button";
@@ -3389,7 +3505,7 @@
               <div class="card-desc">${c.desc}</div>
             </div>
             <div class="card-status-tag">
-              ${isSelected ? "✓ 選択中" : lockedLastOnly ? "※効果発動は手札1枚時のみ" : ""}
+              ${lockedLastOnly ? "※手札1枚時のみ" : isSelected ? "✓ 選択中" : ""}
             </div>
           `;
           handCardsEl.appendChild(btn);
@@ -3411,7 +3527,7 @@
       // 下部ステータス＆ボタン制御
       const statusEl = document.getElementById("selectionStatus");
       const cancelBtn = document.getElementById("cancelTurnStepBtn");
-      const faceDownCutBtn = document.getElementById("faceDownCutBtn");
+      const skipCutBtn = document.getElementById("skipCutBtn");
       const primaryBtn = document.getElementById("primaryStepBtn");
 
       if (game.phase !== "action") {
@@ -3420,43 +3536,38 @@
             ? "議論タイム中です。話し合いが終わったら「議論終了」を押してください。"
             : "初期導線確認・申告中、またはゲーム終了です。";
         cancelBtn.style.display = "none";
-        faceDownCutBtn.style.display = "none";
+        skipCutBtn.style.display = "none";
         primaryBtn.textContent = "場に出す（OK）";
         primaryBtn.disabled = true;
       } else if (!isViewerTurn) {
         statusEl.textContent = `現在は ${seatMark(actor.index)}${actor.name} の手番です。上の「視点」から選んで操作してください。`;
         cancelBtn.style.display = "none";
-        faceDownCutBtn.style.display = "none";
+        skipCutBtn.style.display = "none";
         primaryBtn.textContent = "場に出す（OK）";
         primaryBtn.disabled = true;
       } else if (game.turnStep === "pick_card") {
         const picked = game.selectedCardUid ? actor.hand.find((c) => c.uid === game.selectedCardUid) : null;
-        const hasChoice = Boolean(picked);
         const canPlayCardEffect = Boolean(picked && (!picked.lastOnly || actor.hand.length === 1));
 
-        cancelBtn.style.display = hasChoice ? "inline-block" : "none";
-        faceDownCutBtn.style.display = hasChoice ? "inline-block" : "none";
+        cancelBtn.style.display = picked ? "inline-block" : "none";
+        skipCutBtn.style.display = "none";
         primaryBtn.textContent = "場に出す（OK）";
         primaryBtn.disabled = !canPlayCardEffect;
 
         if (picked) {
-          if (!canPlayCardEffect) {
-            statusEl.textContent = `「${picked.name}」を選択中（手札2枚以上のため効果は使えません。「裏向きでカット」なら捨ててカットできます）。`;
-          } else {
-            statusEl.textContent = `「${picked.name}」を選択中。「場に出す（OK）」または「裏向きでカット」を選んでください。`;
-          }
+          statusEl.textContent = `「${picked.name}」を選択中。「場に出す（OK）」を押してカードを使用してください。`;
         } else {
-          statusEl.textContent = "場に出す手札を1枚タップして選んでください。";
+          statusEl.textContent = "手札から使うアクションカードを1枚選んでください（手札がある限り必ず使用します）。";
         }
       } else if (game.turnStep === "share_modal") {
         cancelBtn.style.display = "none";
-        faceDownCutBtn.style.display = "none";
+        skipCutBtn.style.display = "none";
         primaryBtn.textContent = "共有確認中…";
         primaryBtn.disabled = true;
         statusEl.textContent = "場に出したカードを全員に共有中です。モーダルの「OK」を押してください。";
       } else if (game.turnStep === "pick_target") {
         cancelBtn.style.display = "none";
-        faceDownCutBtn.style.display = "none";
+        skipCutBtn.style.display = "none";
         primaryBtn.textContent = "OK（効果を発動）";
         primaryBtn.disabled = !canExecuteTarget(spec);
 
@@ -3493,6 +3604,15 @@
                 : "他人の裏向き導線1枚をタップするか、「犬で手札」を押してください。";
           }
         }
+      } else if (game.turnStep === "optional_cut") {
+        cancelBtn.style.display = "none";
+        skipCutBtn.style.display = "inline-block";
+        primaryBtn.textContent = "この導線を切る";
+        primaryBtn.disabled = game.selectedTargets.length !== 1;
+        statusEl.textContent =
+          game.selectedTargets.length === 1
+            ? "切る導線を選択済み。「この導線を切る」を押すか、「切らずに終了」を選んでください。"
+            : "カード効果完了！他人の裏向き導線を1枚選んで切るか、「切らずに終了」を押してください。";
       }
     }
 
