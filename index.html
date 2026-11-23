@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>爆弾は踊る v10（プロトタイプ）</title>
+  <title>爆弾は踊る v11（プロトタイプ）</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -1218,7 +1218,7 @@
 <body>
   <!-- セットアップ画面 -->
   <div id="setupScreen" class="setup-wrap">
-    <h1>爆弾は踊る <span class="title-ver">v10</span></h1>
+    <h1>爆弾は踊る <span class="title-ver">v11</span></h1>
     <p class="sub">ブラウザ単体テスト版｜1人でも各プレイヤーの手番を切り替えながら全ルールを確認できます</p>
 
     <div class="form-row">
@@ -1255,7 +1255,7 @@
     <!-- ① ヘッダー -->
     <header class="zone-header">
       <div class="header-left">
-        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v10</span></span>
+        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v11</span></span>
         <span id="roundBadge" class="badge">1周目 / 全3周</span>
         <span id="phaseBadge" class="badge turn">進行中</span>
         <span id="codeBadge" class="badge code">解除コード: 0 / 3</span>
@@ -1467,7 +1467,7 @@
       { id: "swap_wire", name: "配線のすり替え", type: "swap_wire", count: 6, desc: "自分の導線1枚と、右隣または左隣の導線1枚を裏向きのまま交換する。" },
       { id: "shuffle_wire", name: "緊急シャッフル", type: "shuffle_wire", count: 3, desc: "自分を含む誰か1人の導線をすべて混ぜて裏向きで並べ直す。" },
       { id: "surik", name: "スリ", type: "surik", count: 3, desc: "自分以外の手札からランダムに1枚引き、自分の手札1枚を渡す。" },
-      { id: "rumor", name: "うわさ", type: "rumor", count: 2, desc: "自分以外を1人指名し、お互いの手札からランダムに1枚ずつ強制交換する。" },
+      { id: "rumor", name: "うわさ", type: "rumor", count: 2, desc: "全員で同時に、右隣（時計回りの次の人）の手札からランダムに1枚引く。" },
       { id: "dog", name: "警察犬", type: "dog", count: 1, desc: "自分以外の手札1枚または裏向き導線1枚を指定。起爆スイッチか時限爆弾なら捜査官勝利！" },
       { id: "mole", name: "内通者の密書", type: "mole", count: 1, desc: "使用した瞬間、自分の陣営が「爆弾魔」になる。" },
       { id: "defuse_key", name: "解除成功", type: "defuse_key", count: 1, lastOnly: true, desc: "【手札が最後の1枚のみ】捜査官が使えば捜査官チームの勝利！" },
@@ -2274,7 +2274,7 @@
         case "surik":
           return { mode: "surik", card, needPlayerTarget: 1, allowSelfPlayer: false };
         case "rumor":
-          return { mode: "rumor", card, needPlayerTarget: 1, allowSelfPlayer: false };
+          return { mode: "instant", card };
         case "dog":
           return { mode: "dog", card, needDogTarget: true };
         case "mole":
@@ -2782,21 +2782,45 @@
         return;
       }
 
-      // 8. うわさ
+      // 8. うわさ（全員で同時に右隣／時計回りの次の人からランダムに1枚引く）
       if (usedCard.type === "rumor") {
-        const targetPlayer = game.players[game.selectedTargets[0].playerIdx];
-        const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
-        if (actor.hand.length === 0 || targetPlayer.hand.length === 0) {
-          addLog(`→ 手札不足のため交換できませんでした。`, false);
-        } else {
-          const myRand = Math.floor(Math.random() * actor.hand.length);
-          const theirRand = Math.floor(Math.random() * targetPlayer.hand.length);
-          const [fromMe] = actor.hand.splice(myRand, 1);
-          const [fromThem] = targetPlayer.hand.splice(theirRand, 1);
-          actor.hand.push(fromThem);
-          targetPlayer.hand.push(fromMe);
-          addLog(`→ ${targetLabel} とお互いの手札からランダムに1枚ずつ強制交換しました！`, false);
+        const n = game.playerCount;
+        const drawnPlan = [];
+
+        for (let i = 0; i < n; i++) {
+          const rightIdx = (i + 1) % n;
+          const rightPlayer = game.players[rightIdx];
+          if (rightPlayer.hand.length > 0) {
+            const pickIdx = Math.floor(Math.random() * rightPlayer.hand.length);
+            drawnPlan.push({
+              takerIdx: i,
+              giverIdx: rightIdx,
+              card: rightPlayer.hand[pickIdx]
+            });
+          }
         }
+
+        // 同時処理として、各人が右隣から引いたカードを取り出し、まとめて自分の手札に加える
+        const receivedCards = drawnPlan.map((item) => {
+          const giver = game.players[item.giverIdx];
+          const foundIdx = giver.hand.findIndex((c) => c.uid === item.card.uid);
+          const [taken] = foundIdx !== -1 ? giver.hand.splice(foundIdx, 1) : [item.card];
+          return { takerIdx: item.takerIdx, giverIdx: item.giverIdx, card: taken };
+        });
+
+        receivedCards.forEach((entry) => {
+          game.players[entry.takerIdx].hand.push(entry.card);
+        });
+
+        if (receivedCards.length === 0) {
+          addLog(`→ 誰も引ける手札がありませんでした。`, false);
+        } else {
+          const summary = receivedCards
+            .map((entry) => `${seatMark(entry.takerIdx)}${game.players[entry.takerIdx].name}←${seatMark(entry.giverIdx)}${game.players[entry.giverIdx].name}`)
+            .join("、");
+          addLog(`→ 全員で同時に右隣から1枚ずつ引きました！（${summary}）`, false);
+        }
+
         resetTurnFlow();
         enterOptionalCutStep();
         renderAll();
