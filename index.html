@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>爆弾は踊る（プロトタイプ）</title>
+  <title>爆弾は踊る v7（プロトタイプ）</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -817,12 +817,73 @@
     .result-table th {
       background: #0f172a;
     }
+
+    .card-thumb {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: block;
+      margin-bottom: 5px;
+      background: #0f172a;
+    }
+
+    .role-thumb {
+      width: 24px;
+      height: 24px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .wire-thumb {
+      width: 28px;
+      height: 28px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .wire-slot.has-icon {
+      height: auto;
+      min-height: 68px;
+      gap: 3px;
+      padding: 4px;
+    }
+
+    .modal-thumb {
+      width: 92px;
+      height: 92px;
+      object-fit: cover;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      display: block;
+      margin: 0 auto 8px;
+    }
+
+
+    .title-ver {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 2px 8px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.18);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      vertical-align: middle;
+    }
+
   </style>
 </head>
 <body>
   <!-- セットアップ画面 -->
   <div id="setupScreen" class="setup-wrap">
-    <h1>爆弾は踊る（プロトタイプ）</h1>
+    <h1>爆弾は踊る <span class="title-ver">v7</span></h1>
     <p class="sub">ブラウザ単体テスト版｜1人でも各プレイヤーの手番を切り替えながら全ルールを確認できます</p>
 
     <div class="form-row">
@@ -859,6 +920,7 @@
     <!-- ① ヘッダー -->
     <header class="zone-header">
       <div class="header-left">
+        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v7</span></span>
         <span id="roundBadge" class="badge">1周目 / 全3周</span>
         <span id="phaseBadge" class="badge turn">進行中</span>
         <span id="codeBadge" class="badge code">解除コード: 0 / 3</span>
@@ -1044,6 +1106,37 @@
       { id: "detonator", name: "起爆スイッチ", type: "detonator", count: 1, lastOnly: true, desc: "【手札が最後の1枚のみ】爆弾魔が使えば爆弾魔チームの勝利！" }
     ];
 
+    const ASSET_BASE = "assets/small/";
+
+    const ACTION_IMAGES = {
+      cut: `${ASSET_BASE}action-cut.jpg`,
+      double_cut: `${ASSET_BASE}action-doublecut.jpg`,
+      thermo: `${ASSET_BASE}action-thermo.jpg`,
+      wiretap: `${ASSET_BASE}action-bug.jpg`,
+      swap_wire: `${ASSET_BASE}action-swap.jpg`,
+      shuffle_wire: `${ASSET_BASE}action-shuffle.jpg`,
+      surik: `${ASSET_BASE}action-pickpocket.jpg`,
+      rumor: `${ASSET_BASE}action-rumor.jpg`,
+      dog: `${ASSET_BASE}action-police-dog.jpg`,
+      mole: `${ASSET_BASE}action-secret-letter.jpg`,
+      defuse_key: `${ASSET_BASE}action-defused.jpg`,
+      detonator: `${ASSET_BASE}action-detonator.jpg`,
+      basic_cut: `${ASSET_BASE}action-cut.jpg`
+    };
+
+    const ROLE_IMAGES = {
+      cop: `${ASSET_BASE}role-police.jpg`,
+      bomber: `${ASSET_BASE}role-bomber.jpg`
+    };
+
+    function getWireImageSrc(wire) {
+      if (wire.kind === "bomb") return `${ASSET_BASE}bafuda-bomb.jpg`;
+      if (wire.kind === "code") return `${ASSET_BASE}bafuda-code.jpg`;
+      return wire.safeVariant === "tangled"
+        ? `${ASSET_BASE}bafuda-safe-tangled.jpg`
+        : `${ASSET_BASE}bafuda-safe-cut.jpg`;
+    }
+
     const WIRE_LABELS = {
       bomb: "時限爆弾",
       code: "解除コード",
@@ -1199,9 +1292,11 @@
       for (let i = 0; i < n; i++) {
         const myWires = [];
         for (let w = 0; w < cfg.wiresPerPlayer; w++) {
+          const wireKind = wireDeck[wireCursor++];
           myWires.push({
             id: `w_${i}_${w}_${Math.random().toString(36).slice(2, 6)}`,
-            kind: wireDeck[wireCursor++],
+            kind: wireKind,
+            safeVariant: wireKind === "safe" ? (Math.random() < 0.5 ? "cut" : "tangled") : null,
             revealed: false
           });
         }
@@ -1450,7 +1545,12 @@
       const actualCodes = p.wires.filter((w) => w.kind === "code").length;
       const actualSafes = p.wires.filter((w) => w.kind === "safe").length;
       const wireChips = p.wires
-        .map((w, i) => `<span class="chip">導線${i + 1}：${WIRE_LABELS[w.kind]}${w.revealed ? "（公開済）" : ""}</span>`)
+        .map((w, i) => `
+          <span class="chip" style="display:inline-flex; align-items:center; gap:6px;">
+            <img src="${getWireImageSrc(w)}" alt="${WIRE_LABELS[w.kind]}" style="width:24px; height:24px; border-radius:5px; object-fit:cover;" />
+            <span>導線${i + 1}：${WIRE_LABELS[w.kind]}${w.revealed ? "（公開済）" : ""}</span>
+          </span>
+        `)
         .join("");
 
       document.getElementById("claimActualBox").innerHTML = `
@@ -1705,6 +1805,7 @@
         `${actorLabel} がこのカードを場に出しました。全員で確認したら「OK」を押してください。`;
       document.getElementById("playShareBox").innerHTML = `
         <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 6px;">場に出されたカード</div>
+        <img src="${ACTION_IMAGES[card.type] || ""}" alt="${card.name}" class="modal-thumb" />
         <div style="font-size: 1.15rem; font-weight: 800; color: #38bdf8;">🃏 ${card.name}</div>
         <div style="font-size: 0.82rem; color: var(--text); margin-top: 8px; line-height: 1.4;">${card.desc}</div>
       `;
@@ -2301,7 +2402,10 @@
       }
 
       const roleHtml = p.roleVisible
-        ? `<span class="role-tag ${p.role === "cop" ? "role-cop" : "role-bomber"}">${p.role === "cop" ? "捜査官" : "爆弾魔"}</span>`
+        ? `<span class="role-tag ${p.role === "cop" ? "role-cop" : "role-bomber"}" style="display:inline-flex; align-items:center; gap:5px;">
+             <img src="${ROLE_IMAGES[p.role]}" alt="${p.role === "cop" ? "警察" : "爆弾魔"}" class="role-thumb" />
+             <span>${p.role === "cop" ? "捜査官" : "爆弾魔"}</span>
+           </span>`
         : `<span class="role-tag role-hidden">役職非表示</span>`;
 
       const wiresHtml = p.wires
@@ -2310,7 +2414,10 @@
           let label = `導線${wIdx + 1}`;
           let pickable = false;
 
+          let wireImgHtml = "";
           if (w.revealed) {
+            cls += "has-icon ";
+            wireImgHtml = `<img src="${getWireImageSrc(w)}" alt="${WIRE_LABELS[w.kind]}" class="wire-thumb" />`;
             if (w.kind === "code") {
               cls += "wire-revealed-code";
               label = "解除コード";
@@ -2342,7 +2449,7 @@
           const memoHtml = memoKind ? `<span class="memo-badge">🔍${WIRE_LABELS[memoKind]}</span>` : "";
 
           const clickAttr = pickable ? `onclick="event.stopPropagation(); onWireClick(${idx}, ${wIdx})"` : "";
-          return `<div class="${cls}" ${clickAttr}><span>${label}</span>${memoHtml}</div>`;
+          return `<div class="${cls}" ${clickAttr}>${wireImgHtml}<span>${label}</span>${memoHtml}</div>`;
         })
         .join("");
 
@@ -2665,6 +2772,7 @@
           btn.onclick = () => selectHandCard(c.uid);
           btn.innerHTML = `
             <div>
+              <img src="${ACTION_IMAGES[c.type] || ""}" alt="${c.name}" class="card-thumb" />
               <div class="card-title">${c.name}</div>
               <div class="card-desc">${c.desc}</div>
             </div>
@@ -2701,6 +2809,7 @@
       basicCardBtn.onclick = () => selectBasicCut();
       basicCardBtn.innerHTML = `
         <div>
+          <img src="${ACTION_IMAGES.basic_cut}" alt="手札を捨ててカット" class="card-thumb" />
           <div class="card-title">✂️ 手札を捨ててカット</div>
           <div class="card-desc">手札1枚を裏向きで捨て、他人の導線1枚を切る。</div>
         </div>
