@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>爆弾は踊る v8（プロトタイプ）</title>
+  <title>爆弾は踊る v9（プロトタイプ）</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -969,12 +969,256 @@
       object-fit: cover;
     }
 
+
+    /* カット演出・勝利演出オーバーレイ */
+    @keyframes screenShake {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      10% { transform: translate(-10px, -6px) rotate(-1.2deg); }
+      20% { transform: translate(10px, 6px) rotate(1.2deg); }
+      30% { transform: translate(-12px, 4px) rotate(-1deg); }
+      40% { transform: translate(12px, -4px) rotate(1deg); }
+      50% { transform: translate(-8px, -6px) rotate(-0.8deg); }
+      60% { transform: translate(8px, 6px) rotate(0.8deg); }
+      70% { transform: translate(-6px, 3px) rotate(-0.5deg); }
+      80% { transform: translate(6px, -3px) rotate(0.5deg); }
+      90% { transform: translate(-3px, 2px) rotate(0deg); }
+    }
+
+    body.bomb-shake {
+      animation: screenShake 0.75s ease-in-out 2;
+    }
+
+    @keyframes popZoom {
+      0% { transform: scale(0.6); opacity: 0; }
+      70% { transform: scale(1.06); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes sparklePulse {
+      0%, 100% { box-shadow: 0 0 22px rgba(34, 197, 94, 0.55), inset 0 0 18px rgba(34, 197, 94, 0.25); }
+      50% { box-shadow: 0 0 42px rgba(74, 222, 128, 0.95), inset 0 0 28px rgba(134, 239, 172, 0.45); }
+    }
+
+    @keyframes bombRedFlash {
+      0%, 100% { background: rgba(127, 29, 29, 0.88); }
+      50% { background: rgba(220, 38, 38, 0.92); }
+    }
+
+    @keyframes confettiFall {
+      0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0.9; }
+    }
+
+    .fx-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(2, 6, 23, 0.82);
+      cursor: pointer;
+    }
+
+    .fx-overlay.open {
+      display: flex;
+    }
+
+    .fx-overlay.fx-bomb {
+      animation: bombRedFlash 0.45s ease-in-out infinite;
+    }
+
+    .fx-overlay.fx-defuse {
+      background: radial-gradient(circle, rgba(20, 83, 45, 0.92) 0%, rgba(2, 6, 23, 0.9) 100%);
+    }
+
+    .fx-card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 380px;
+      background: var(--panel);
+      border: 2px solid var(--accent);
+      border-radius: 22px;
+      padding: 24px 20px;
+      text-align: center;
+      animation: popZoom 0.35s ease-out forwards;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+    }
+
+    .fx-card.bomb-card {
+      border-color: #f87171;
+      background: #450a0a;
+      box-shadow: 0 0 40px rgba(239, 68, 68, 0.85);
+    }
+
+    .fx-card.defuse-card {
+      border-color: #4ade80;
+      background: #052e16;
+      animation: popZoom 0.35s ease-out forwards, sparklePulse 1.1s ease-in-out infinite;
+    }
+
+    .fx-icon {
+      width: 144px;
+      height: 144px;
+      object-fit: cover;
+      border-radius: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      display: block;
+      margin: 0 auto 14px;
+    }
+
+    .fx-label {
+      font-size: 1.45rem;
+      font-weight: 900;
+      margin-bottom: 6px;
+    }
+
+    .fx-sub {
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      line-height: 1.45;
+    }
+
+    .confetti-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    .confetti-piece {
+      position: absolute;
+      top: -20px;
+      width: 10px;
+      height: 16px;
+      border-radius: 3px;
+      animation: confettiFall linear forwards;
+    }
+
+    /* 専用リザルト画面 */
+    .result-screen {
+      max-width: 860px;
+      margin: 18px auto 36px;
+      padding: 18px;
+    }
+
+    .winner-hero {
+      background: var(--panel);
+      border: 2px solid var(--accent);
+      border-radius: 20px;
+      padding: 24px 18px;
+      text-align: center;
+      margin-bottom: 18px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+
+    .winner-hero.cop-win {
+      border-color: #38bdf8;
+      background: linear-gradient(180deg, rgba(14, 116, 144, 0.32) 0%, var(--panel) 100%);
+    }
+
+    .winner-hero.bomber-win {
+      border-color: #f87171;
+      background: linear-gradient(180deg, rgba(153, 27, 27, 0.36) 0%, var(--panel) 100%);
+    }
+
+    .winner-role-icon {
+      width: 132px;
+      height: 132px;
+      object-fit: cover;
+      border-radius: 22px;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      display: block;
+      margin: 0 auto 12px;
+    }
+
+    .winner-title-big {
+      font-size: 1.85rem;
+      font-weight: 900;
+      margin: 0 0 8px;
+      letter-spacing: 0.03em;
+    }
+
+    .result-section {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .result-section h3 {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .result-player-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 10px;
+    }
+
+    .result-player-card {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .result-wire-mini {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 8px;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .result-wire-mini img {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      object-fit: cover;
+    }
+
+    .result-log-list {
+      max-height: 240px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.82rem;
+    }
+
+    .result-footer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+
+    .result-footer-actions button {
+      padding: 13px 22px;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
   </style>
 </head>
 <body>
   <!-- セットアップ画面 -->
   <div id="setupScreen" class="setup-wrap">
-    <h1>爆弾は踊る <span class="title-ver">v8</span></h1>
+    <h1>爆弾は踊る <span class="title-ver">v9</span></h1>
     <p class="sub">ブラウザ単体テスト版｜1人でも各プレイヤーの手番を切り替えながら全ルールを確認できます</p>
 
     <div class="form-row">
@@ -1011,7 +1255,7 @@
     <!-- ① ヘッダー -->
     <header class="zone-header">
       <div class="header-left">
-        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v8</span></span>
+        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v9</span></span>
         <span id="roundBadge" class="badge">1周目 / 全3周</span>
         <span id="phaseBadge" class="badge turn">進行中</span>
         <span id="codeBadge" class="badge code">解除コード: 0 / 3</span>
@@ -1182,17 +1426,30 @@
     </div>
   </div>
 
-  <!-- リザルト（勝敗＆ネタばらし）モーダル -->
-  <div id="resultModal" class="modal-backdrop">
-    <div class="modal-card">
-      <h2 id="resultTitle">勝敗結果</h2>
-      <p id="resultReason" style="font-size: 0.95rem; margin: 6px 0 14px;"></p>
-      <div id="resultTableWrap"></div>
-      <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;">
-        <button type="button" onclick="backToSetup()">設定に戻る</button>
-        <button type="button" class="primary" onclick="startGame()">同じ設定でもう1戦</button>
-      </div>
+  <!-- 専用リザルト画面（ゲーム終了時に画面切り替え） -->
+  <div id="resultScreen" class="result-screen" style="display: none;">
+    <div id="winnerHeroBox" class="winner-hero"></div>
+
+    <div class="result-section">
+      <h3>役職一覧 ＆ 最初の場札内訳</h3>
+      <div id="resultPlayersGrid" class="result-player-grid"></div>
     </div>
+
+    <div class="result-section">
+      <h3>行動ログ（全履歴）</h3>
+      <div id="resultLogList" class="result-log-list"></div>
+    </div>
+
+    <div class="result-footer-actions">
+      <button type="button" onclick="backToSetup()">設定画面に戻る</button>
+      <button type="button" class="primary" onclick="startGame()">同じメンバーでプレイ</button>
+    </div>
+  </div>
+
+  <!-- カット結果・爆弾・解除成功の3秒演出オーバーレイ -->
+  <div id="fxOverlay" class="fx-overlay" onclick="dismissFxOverlay()">
+    <div id="confettiLayer" class="confetti-layer"></div>
+    <div id="fxCardBox" class="fx-card"></div>
   </div>
 
   <script>
@@ -1417,12 +1674,17 @@
         myWires.forEach((wr) => {
           memosByViewer[wr.id] = wr.kind;
         });
+        const initialWires = myWires.map((wr) => ({
+          kind: wr.kind,
+          safeVariant: wr.safeVariant
+        }));
 
         players.push({
           index: i,
           name: setupState.names[i] || `プレイヤー${i + 1}`,
           initialRole: roles[i],
           role: roles[i],
+          initialWires,
           wires: myWires,
           hand,
           memosByViewer,
@@ -1466,7 +1728,9 @@
       };
 
       stopTimer();
+      clearFxOverlayImmediate();
       document.getElementById("setupScreen").style.display = "none";
+      document.getElementById("resultScreen").style.display = "none";
       document.getElementById("gameScreen").style.display = "flex";
       closeAllModals();
 
@@ -1478,8 +1742,10 @@
 
     function backToSetup() {
       stopTimer();
+      clearFxOverlayImmediate();
       closeAllModals();
       document.getElementById("gameScreen").style.display = "none";
+      document.getElementById("resultScreen").style.display = "none";
       document.getElementById("setupScreen").style.display = "block";
       initSetupUI();
     }
@@ -2101,6 +2367,118 @@
       return false;
     }
 
+    let fxTimeoutId = null;
+    let fxOnDoneCallback = null;
+
+    function clearFxOverlayImmediate() {
+      if (fxTimeoutId) {
+        clearTimeout(fxTimeoutId);
+        fxTimeoutId = null;
+      }
+      fxOnDoneCallback = null;
+      document.body.classList.remove("bomb-shake");
+      const overlay = document.getElementById("fxOverlay");
+      if (overlay) {
+        overlay.classList.remove("open", "fx-bomb", "fx-defuse");
+      }
+      const confetti = document.getElementById("confettiLayer");
+      if (confetti) confetti.innerHTML = "";
+    }
+
+    function dismissFxOverlay() {
+      const cb = fxOnDoneCallback;
+      clearFxOverlayImmediate();
+      if (typeof cb === "function") cb();
+    }
+
+    function spawnConfetti() {
+      const layer = document.getElementById("confettiLayer");
+      if (!layer) return;
+      layer.innerHTML = "";
+      const colors = ["#4ade80", "#38bdf8", "#fde047", "#f472b6", "#a78bfa", "#ffffff"];
+      for (let i = 0; i < 65; i++) {
+        const piece = document.createElement("div");
+        piece.className = "confetti-piece";
+        piece.style.left = `${Math.random() * 100}%`;
+        piece.style.background = colors[i % colors.length];
+        piece.style.animationDuration = `${1.8 + Math.random() * 1.6}s`;
+        piece.style.animationDelay = `${Math.random() * 0.45}s`;
+        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+        layer.appendChild(piece);
+      }
+    }
+
+    function showCutFxSequence(revealedWires, onComplete) {
+      clearFxOverlayImmediate();
+      if (!revealedWires || revealedWires.length === 0) {
+        if (onComplete) onComplete();
+        return;
+      }
+
+      let idx = 0;
+      function showNextItem() {
+        if (idx >= revealedWires.length) {
+          clearFxOverlayImmediate();
+          if (onComplete) onComplete();
+          return;
+        }
+        const entry = revealedWires[idx++];
+        const w = entry.wire;
+        const overlay = document.getElementById("fxOverlay");
+        const cardBox = document.getElementById("fxCardBox");
+        const confetti = document.getElementById("confettiLayer");
+
+        overlay.classList.remove("fx-bomb", "fx-defuse");
+        cardBox.classList.remove("bomb-card", "defuse-card");
+        document.body.classList.remove("bomb-shake");
+        confetti.innerHTML = "";
+
+        const imgSrc = getWireImageSrc(w);
+        const title = WIRE_LABELS[w.kind];
+        let subText = `${entry.targetLabel} の導線をカット！`;
+        let durationMs = 2800;
+
+        if (w.kind === "bomb") {
+          overlay.classList.add("fx-bomb");
+          cardBox.classList.add("bomb-card");
+          void document.body.offsetWidth;
+          document.body.classList.add("bomb-shake");
+          subText = `${entry.targetLabel} の導線から時限爆弾が起爆！！`;
+          durationMs = 3000;
+        } else if (entry.isFinalCode || entry.isDefuseCard) {
+          overlay.classList.add("fx-defuse");
+          cardBox.classList.add("defuse-card");
+          spawnConfetti();
+          subText = entry.isDefuseCard
+            ? "最後の1枚「解除成功」で爆弾の解除に成功！！"
+            : "規定枚数の解除コードが揃い、解除成功！！";
+          durationMs = 3200;
+        } else if (w.kind === "code") {
+          subText = `${entry.targetLabel} から解除コードを発見！（${entry.codeCountAfter} / ${game.cfg.winCodes}）`;
+        } else {
+          subText = `${entry.targetLabel} の導線はスカでした。`;
+        }
+
+        const displayTitle = entry.isDefuseCard ? "解除成功！" : title;
+        const displayImg = entry.isDefuseCard ? ACTION_IMAGES.defuse_key : imgSrc;
+
+        cardBox.innerHTML = `
+          <img src="${displayImg}" alt="${displayTitle}" class="fx-icon" />
+          <div class="fx-label">${displayTitle}</div>
+          <div class="fx-sub">${subText}</div>
+          <div style="font-size: 0.72rem; color: var(--muted); margin-top: 10px;">（約3秒後に自動で閉じます／タップでスキップ）</div>
+        `;
+
+        overlay.classList.add("open");
+        fxOnDoneCallback = showNextItem;
+        fxTimeoutId = setTimeout(() => {
+          showNextItem();
+        }, durationMs);
+      }
+
+      showNextItem();
+    }
+
     // ステップ④：対象選択後の「OK」押下で効果を実行
     function executePlayedEffect() {
       const spec = getActiveEffectSpec();
@@ -2110,18 +2488,24 @@
       const actorLabel = `${seatMark(actor.index)}${actor.name}`;
       const played = game.playedAction;
 
-      // 基本カット
+      // 基本カット（手札を1枚捨ててカット）
       if (played.kind === "basic_cut") {
         const t = game.selectedTargets[0];
         const targetPlayer = game.players[t.playerIdx];
         const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         const w = revealWire(t.playerIdx, t.wireId, true);
         addLog(`→ ${targetLabel} の導線をカット：【${WIRE_LABELS[w.kind]}】！`, false);
+        const isFinalCode = w.kind === "code" && game.revealedCodes >= game.cfg.winCodes;
         resetTurnFlow();
-        if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
-          advanceTurn();
-        }
         renderAll();
+        showCutFxSequence(
+          [{ wire: w, targetLabel, isFinalCode, codeCountAfter: game.revealedCodes }],
+          () => {
+            if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
+              advanceTurn();
+            }
+          }
+        );
         return;
       }
 
@@ -2134,11 +2518,17 @@
         const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
         const w = revealWire(t.playerIdx, t.wireId, true);
         addLog(`→ ${targetLabel} の導線をカット：【${WIRE_LABELS[w.kind]}】！`, false);
+        const isFinalCode = w.kind === "code" && game.revealedCodes >= game.cfg.winCodes;
         resetTurnFlow();
-        if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
-          advanceTurn();
-        }
         renderAll();
+        showCutFxSequence(
+          [{ wire: w, targetLabel, isFinalCode, codeCountAfter: game.revealedCodes }],
+          () => {
+            if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
+              advanceTurn();
+            }
+          }
+        );
         return;
       }
 
@@ -2146,19 +2536,29 @@
       if (usedCard.type === "double_cut") {
         const targetsCopy = [...game.selectedTargets];
         resetTurnFlow();
+        const fxItems = [];
+        let lastEvent = null;
+
         for (const t of targetsCopy) {
           const targetPlayer = game.players[t.playerIdx];
           const targetLabel = `${seatMark(targetPlayer.index)}${targetPlayer.name}`;
           const w = revealWire(t.playerIdx, t.wireId, true);
           if (!w) continue;
           addLog(`→ ${targetLabel} の導線から【${WIRE_LABELS[w.kind]}】が出現！`, false);
-          if (checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
-            renderAll();
-            return;
+          const isFinalCode = w.kind === "code" && game.revealedCodes >= game.cfg.winCodes;
+          fxItems.push({ wire: w, targetLabel, isFinalCode, codeCountAfter: game.revealedCodes });
+          lastEvent = { w, targetLabel };
+          if (w.kind === "bomb" || isFinalCode) {
+            break;
           }
         }
-        advanceTurn();
         renderAll();
+        showCutFxSequence(fxItems, () => {
+          if (lastEvent && checkImmediateWinAfterWireReveal(lastEvent.w, actorLabel, lastEvent.targetLabel)) {
+            return;
+          }
+          advanceTurn();
+        });
         return;
       }
 
@@ -2309,16 +2709,27 @@
           if (w && w.kind === "bomb") {
             addLog(`→ ${targetLabel} の導線から【時限爆弾】を探知！`, false);
             resetTurnFlow();
-            endGame("cop", `警察犬が【時限爆弾】を嗅ぎ当て、爆発を防ぐことに成功！捜査官チームの勝利です！`);
             renderAll();
+            showCutFxSequence(
+              [{ wire: { kind: "code" }, targetLabel, isDefuseCard: true, codeCountAfter: game.revealedCodes }],
+              () => {
+                endGame("cop", `警察犬が【時限爆弾】を嗅ぎ当て、爆発を防ぐことに成功！捜査官チームの勝利です！`);
+              }
+            );
             return;
           }
           addLog(`→ ${targetLabel} の導線を調べましたが、爆弾ではありませんでした（【${WIRE_LABELS[w.kind]}】を表向きにしました）。`, false);
+          const isFinalCode = w && w.kind === "code" && game.revealedCodes >= game.cfg.winCodes;
           resetTurnFlow();
-          if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
-            advanceTurn();
-          }
           renderAll();
+          showCutFxSequence(
+            w ? [{ wire: w, targetLabel, isFinalCode, codeCountAfter: game.revealedCodes }] : [],
+            () => {
+              if (!checkImmediateWinAfterWireReveal(w, actorLabel, targetLabel)) {
+                advanceTurn();
+              }
+            }
+          );
           return;
         }
       }
@@ -2338,12 +2749,18 @@
         resetTurnFlow();
         if (actor.role === "cop") {
           addLog(`→ ${actorLabel} が最後の1枚「解除成功」を発動！`, false);
-          endGame("cop", `${actorLabel}（捜査官）が最後の1枚「解除成功」を発動し、捜査官チームの勝利！`);
+          renderAll();
+          showCutFxSequence(
+            [{ wire: { kind: "code" }, targetLabel: actorLabel, isDefuseCard: true, codeCountAfter: game.revealedCodes }],
+            () => {
+              endGame("cop", `${actorLabel}（捜査官）が最後の1枚「解除成功」を発動し、捜査官チームの勝利！`);
+            }
+          );
         } else {
           addLog(`→ 爆弾魔のため効果がありませんでした！`, false);
           advanceTurn();
+          renderAll();
         }
-        renderAll();
         return;
       }
 
@@ -2455,55 +2872,88 @@
       game.phase = "ended";
       addLog(`【決着】${reason}`, false);
       renderAll();
-      openResultModal();
+      showResultScreen();
     }
 
-    function openResultModal() {
+    function showResultScreen() {
       if (!game) return;
-      const titleEl = document.getElementById("resultTitle");
-      if (game.winner === "cop") {
-        titleEl.textContent = "🚨 捜査官チームの勝利！";
-        titleEl.style.color = "#7dd3fc";
-      } else {
-        titleEl.textContent = "💣 爆弾魔チームの勝利！";
-        titleEl.style.color = "#fca5a5";
-      }
-      document.getElementById("resultReason").textContent = game.winReason;
+      closeAllModals();
+      document.getElementById("gameScreen").style.display = "none";
+      const resultEl = document.getElementById("resultScreen");
+      resultEl.style.display = "block";
 
-      let rowsHtml = `
-        <table class="result-table">
-          <thead>
-            <tr>
-              <th>席順・名前</th>
-              <th>初期役職</th>
-              <th>最終役職</th>
-              <th>自己申告履歴</th>
-              <th>導線カード（全公開）</th>
-            </tr>
-          </thead>
-          <tbody>
+      const isCopWin = game.winner === "cop";
+      const heroBox = document.getElementById("winnerHeroBox");
+      heroBox.className = "winner-hero " + (isCopWin ? "cop-win" : "bomber-win");
+
+      const winImg = isCopWin ? ROLE_IMAGES.cop : ROLE_IMAGES.bomber;
+      const winTitle = isCopWin ? "捜査官（警察）側の勝利！" : "爆弾魔側の勝利！";
+      const winColor = isCopWin ? "#7dd3fc" : "#fca5a5";
+
+      heroBox.innerHTML = `
+        <img src="${winImg}" alt="${winTitle}" class="winner-role-icon" />
+        <div class="winner-title-big" style="color: ${winColor};">${winTitle}</div>
+        <div style="font-size: 0.96rem; color: var(--text); line-height: 1.55;">${game.winReason}</div>
       `;
+
+      const gridEl = document.getElementById("resultPlayersGrid");
+      gridEl.innerHTML = "";
       game.players.forEach((p) => {
-        const initLabel = p.initialRole === "cop" ? "捜査官" : "爆弾魔";
-        const finalLabel = p.role === "cop" ? "捜査官" : "爆弾魔";
-        const changed = p.initialRole !== p.role ? "（密書で変化）" : "";
-        const c1 = p.initialClaim ? `初:爆${p.initialClaim.bombs}/解${p.initialClaim.codes}` : "初:なし";
-        const c2 = p.lap1EndClaim ? `1周後:爆${p.lap1EndClaim.bombs}/解${p.lap1EndClaim.codes}` : "";
-        const claimStr = [c1, c2].filter(Boolean).join(" / ");
-        const wiresText = p.wires.map((w, i) => `導線${i + 1}:【${WIRE_LABELS[w.kind]}】`).join(" / ");
-        rowsHtml += `
-          <tr>
-            <td><strong>${seatMark(p.index)} ${p.name}</strong></td>
-            <td>${initLabel}</td>
-            <td><strong>${finalLabel}</strong>${changed}</td>
-            <td>${claimStr}</td>
-            <td>${wiresText}</td>
-          </tr>
+        const initLabel = p.initialRole === "cop" ? "捜査官（警察）" : "爆弾魔";
+        const finalLabel = p.role === "cop" ? "捜査官（警察）" : "爆弾魔";
+        const finalColor = p.role === "cop" ? "#7dd3fc" : "#fca5a5";
+        const changedBadge = p.initialRole !== p.role
+          ? `<span class="badge turn" style="font-size:0.7rem; padding:2px 6px;">密書で寝返り</span>`
+          : "";
+
+        const initWiresHtml = (p.initialWires || p.wires).map((w) => `
+          <span class="result-wire-mini">
+            <img src="${getWireImageSrc(w)}" alt="${WIRE_LABELS[w.kind]}" />
+            <span>${WIRE_LABELS[w.kind]}</span>
+          </span>
+        `).join("");
+
+        const finalWiresHtml = p.wires.map((w) => `
+          <span class="result-wire-mini">
+            <img src="${getWireImageSrc(w)}" alt="${WIRE_LABELS[w.kind]}" />
+            <span>${WIRE_LABELS[w.kind]}</span>
+          </span>
+        `).join("");
+
+        const c1 = p.initialClaim ? `初期申告：爆弾${p.initialClaim.bombs} / 解除${p.initialClaim.codes}` : "初期申告：なし";
+        const c2 = p.lap1EndClaim ? `1周目後申告：爆弾${p.lap1EndClaim.bombs} / 解除${p.lap1EndClaim.codes}` : "";
+
+        const card = document.createElement("div");
+        card.className = "result-player-card";
+        card.innerHTML = `
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+            <div style="font-weight:800; font-size:0.98rem;">${seatMark(p.index)} ${p.name}</div>
+            ${changedBadge}
+          </div>
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; padding:6px 8px; border-radius:8px; background:rgba(30,41,59,0.85);">
+            <img src="${ROLE_IMAGES[p.role]}" alt="${finalLabel}" style="width:32px; height:32px; border-radius:8px; object-fit:cover;" />
+            <div>
+              <div style="font-weight:800; color:${finalColor}; font-size:0.9rem;">最終役職：${finalLabel}</div>
+              <div style="font-size:0.74rem; color:var(--muted);">初期役職：${initLabel}</div>
+            </div>
+          </div>
+          <div style="font-size:0.76rem; color:var(--muted); margin-bottom:4px;">最初に持っていた場札</div>
+          <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;">${initWiresHtml}</div>
+          <div style="font-size:0.76rem; color:var(--muted); margin-bottom:4px;">最終的な場札</div>
+          <div style="display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px;">${finalWiresHtml}</div>
+          <div style="font-size:0.74rem; color:#cbd5e1; border-top:1px solid var(--border); padding-top:6px;">
+            ${c1}${c2 ? `<br/>${c2}` : ""}
+          </div>
         `;
+        gridEl.appendChild(card);
       });
-      rowsHtml += `</tbody></table>`;
-      document.getElementById("resultTableWrap").innerHTML = rowsHtml;
-      document.getElementById("resultModal").classList.add("open");
+
+      const logListEl = document.getElementById("resultLogList");
+      logListEl.innerHTML = game.logs
+        .map((l) => `<div class="chip ${l.secret ? "log-secret" : ""}">[${l.time}] ${l.text}</div>`)
+        .join("");
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     function openAllLogsModal() {
@@ -2520,7 +2970,7 @@
     }
 
     function closeAllModals() {
-      ["roleModal", "playShareModal", "peekModal", "claimModal", "surikModal", "allLogsModal", "resultModal"].forEach(closeModal);
+      ["roleModal", "playShareModal", "peekModal", "claimModal", "surikModal", "allLogsModal"].forEach(closeModal);
     }
 
     function switchViewTo(playerIdx) {
