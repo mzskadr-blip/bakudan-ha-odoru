@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>爆弾は踊る v7（プロトタイプ）</title>
+  <title>爆弾は踊る v8（プロトタイプ）</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -132,9 +132,10 @@
     }
 
     .pill.active {
-      background: var(--accent);
-      color: #082f49;
-      border-color: transparent;
+      background: var(--accent) !important;
+      color: #082f49 !important;
+      border-color: #bae6fd !important;
+      font-weight: 800;
     }
 
     .names-grid {
@@ -574,8 +575,8 @@
 
     .hand-cards {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
       margin-bottom: 10px;
     }
 
@@ -878,12 +879,102 @@
       vertical-align: middle;
     }
 
+
+    .role-reveal-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border);
+    }
+
+    .role-reveal-img {
+      width: 112px;
+      height: 112px;
+      object-fit: cover;
+      border-radius: 16px;
+      border: 2px solid var(--border);
+    }
+
+    .role-reveal-text {
+      font-size: 1.15rem;
+      font-weight: 800;
+    }
+
+    .claim-role-banner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      border-radius: 10px;
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid var(--border);
+      font-weight: 800;
+      font-size: 0.92rem;
+    }
+
+    .claim-role-banner img {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .wire-summary-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 240px;
+      margin: 6px auto 0;
+    }
+
+    .wire-summary-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      font-weight: 800;
+    }
+
+    .wire-summary-row img {
+      width: 30px;
+      height: 30px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+
+    .claim-box-label-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .claim-box-label-row img {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      object-fit: cover;
+    }
+
   </style>
 </head>
 <body>
   <!-- セットアップ画面 -->
   <div id="setupScreen" class="setup-wrap">
-    <h1>爆弾は踊る <span class="title-ver">v7</span></h1>
+    <h1>爆弾は踊る <span class="title-ver">v8</span></h1>
     <p class="sub">ブラウザ単体テスト版｜1人でも各プレイヤーの手番を切り替えながら全ルールを確認できます</p>
 
     <div class="form-row">
@@ -920,7 +1011,7 @@
     <!-- ① ヘッダー -->
     <header class="zone-header">
       <div class="header-left">
-        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v7</span></span>
+        <span style="font-weight: 800; font-size: 0.95rem;">爆弾は踊る <span class="title-ver">v8</span></span>
         <span id="roundBadge" class="badge">1周目 / 全3周</span>
         <span id="phaseBadge" class="badge turn">進行中</span>
         <span id="codeBadge" class="badge code">解除コード: 0 / 3</span>
@@ -975,11 +1066,14 @@
 
       <div class="action-bar">
         <div id="selectionStatus" class="selection-status">
-          場に出すカード（または右横の「手札を捨ててカット」）を選んでください。
+          出す手札を1枚選んでください。
         </div>
         <div class="action-buttons">
           <button type="button" id="cancelTurnStepBtn" onclick="cancelSelectionOrPlayed()" style="display: none;">
             選択解除
+          </button>
+          <button type="button" id="faceDownCutBtn" onclick="commitFaceDownCut()" style="display: none;">
+            裏向きでカット
           </button>
           <button type="button" id="primaryStepBtn" class="primary" disabled onclick="handlePrimaryStepButton()">
             場に出す（OK）
@@ -1015,6 +1109,18 @@
     </div>
   </div>
 
+  <!-- 役職カード確認モーダル -->
+  <div id="roleModal" class="modal-backdrop">
+    <div class="modal-card">
+      <h2 id="roleModalTitle">あなたの役職</h2>
+      <p id="roleModalSubtitle" style="color: var(--muted); font-size: 0.88rem; margin: 0 0 12px;"></p>
+      <div id="roleModalContent" class="role-reveal-card"></div>
+      <div style="display: flex; justify-content: flex-end; margin-top: 14px;">
+        <button type="button" class="primary" onclick="confirmRoleModalOk()">OK（場札・自己申告へ）</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 自己申告（嘘も可）ワンタップ入力モーダル -->
   <div id="claimModal" class="modal-backdrop">
     <div class="modal-card">
@@ -1028,11 +1134,17 @@
       <div style="font-size: 0.95rem; font-weight: 800; margin-top: 12px; color: var(--text);">自己申告</div>
       <div class="claim-form-grid" style="margin-top: 8px;">
         <div class="claim-input-box">
-          <span class="box-label">💣 爆弾数</span>
+          <div class="claim-box-label-row">
+            <img src="assets/small/bafuda-bomb.jpg" alt="時限爆弾" />
+            <span>爆弾数</span>
+          </div>
           <div id="claimBombBtns" class="claim-num-btns"></div>
         </div>
         <div class="claim-input-box">
-          <span class="box-label">🔑 解除数</span>
+          <div class="claim-box-label-row">
+            <img src="assets/small/bafuda-code.jpg" alt="解除コード" />
+            <span>解除数</span>
+          </div>
           <div id="claimCodeBtns" class="claim-num-btns"></div>
         </div>
       </div>
@@ -1452,18 +1564,42 @@
       game.selectedTargets = [];
     }
 
-    // 初期確認：ワンクッションなしで直接「場札表示＋自己申告入力」モーダルを開く
+    // 初期確認：まず役職カード（「あなたは○○です。」）を表示してから自己申告画面へ進む
     function openInitialPeek(playerIdx) {
       game.viewingPlayerIndex = playerIdx;
-      openClaimModal(playerIdx, "initial");
+      openRoleModal(playerIdx, "initial");
     }
 
-    // スタンダードモード（3枚モード）の1周目終了時限定：直接「場札表示＋自己申告入力」モーダルを開く
+    // スタンダードモード（3枚モード）の1周目終了時限定：まず役職カードを表示してから自己申告画面へ進む
     function openLap1EndWireCheck() {
       if (!game || game.phase !== "discussion" || game.mode !== "standard" || game.discussionAfterLap !== 1) return;
       const p = game.players[game.viewingPlayerIndex];
       if (p.usedLap1EndCheck) return;
-      openClaimModal(p.index, "lap1_end");
+      openRoleModal(p.index, "lap1_end");
+    }
+
+    function openRoleModal(playerIdx, timing) {
+      const p = game.players[playerIdx];
+      game.pendingRoleStep = { playerIndex: playerIdx, timing };
+      const roleName = p.role === "cop" ? "捜査官（警察）" : "爆弾魔";
+      const roleColor = p.role === "cop" ? "#7dd3fc" : "#fca5a5";
+
+      document.getElementById("roleModalTitle").textContent = `${seatMark(playerIdx)} ${p.name} の役職確認`;
+      document.getElementById("roleModalSubtitle").textContent = "他の人に見えないように確認して「OK」を押してください。";
+      document.getElementById("roleModalContent").innerHTML = `
+        <img src="${ROLE_IMAGES[p.role]}" alt="${roleName}" class="role-reveal-img" />
+        <div class="role-reveal-text">あなたは <span style="color: ${roleColor};">${roleName}</span> です。</div>
+      `;
+      document.getElementById("roleModal").classList.add("open");
+    }
+
+    function confirmRoleModalOk() {
+      const step = game.pendingRoleStep;
+      closeModal("roleModal");
+      if (!step) return;
+      game.pendingRoleStep = null;
+      openClaimModal(step.playerIndex, step.timing);
+      renderAll();
     }
 
     function enqueuePeek(peekObj) {
@@ -1544,23 +1680,29 @@
       const actualBombs = p.wires.filter((w) => w.kind === "bomb").length;
       const actualCodes = p.wires.filter((w) => w.kind === "code").length;
       const actualSafes = p.wires.filter((w) => w.kind === "safe").length;
-      const wireChips = p.wires
-        .map((w, i) => `
-          <span class="chip" style="display:inline-flex; align-items:center; gap:6px;">
-            <img src="${getWireImageSrc(w)}" alt="${WIRE_LABELS[w.kind]}" style="width:24px; height:24px; border-radius:5px; object-fit:cover;" />
-            <span>導線${i + 1}：${WIRE_LABELS[w.kind]}${w.revealed ? "（公開済）" : ""}</span>
-          </span>
-        `)
-        .join("");
+      const roleName = p.role === "cop" ? "捜査官（警察）" : "爆弾魔";
+      const roleColor = p.role === "cop" ? "#7dd3fc" : "#fca5a5";
 
       document.getElementById("claimActualBox").innerHTML = `
-        <div style="font-size: 0.78rem; color: var(--muted); margin-bottom: 6px;">あなたの実際の場札（自分のみ表示）</div>
-        <div style="font-size: 0.94rem; font-weight: 800; color: #fde047; line-height: 1.65;">
-          💣 時限爆弾：${actualBombs}個<br/>
-          🔑 解除コード：${actualCodes}個<br/>
-          スカ：${actualSafes}枚
+        <div class="claim-role-banner">
+          <img src="${ROLE_IMAGES[p.role]}" alt="${roleName}" />
+          <span>あなたは <span style="color: ${roleColor};">${roleName}</span> です</span>
         </div>
-        <div class="peek-chips">${wireChips}</div>
+        <div style="font-size: 0.78rem; color: var(--muted); margin-bottom: 6px;">あなたの現在の場札（シャッフルして配置されます）</div>
+        <div class="wire-summary-list">
+          <div class="wire-summary-row">
+            <img src="${ASSET_BASE}bafuda-bomb.jpg" alt="時限爆弾" />
+            <span>時限爆弾 ${actualBombs}枚</span>
+          </div>
+          <div class="wire-summary-row">
+            <img src="${ASSET_BASE}bafuda-code.jpg" alt="解除コード" />
+            <span>解除コード ${actualCodes}枚</span>
+          </div>
+          <div class="wire-summary-row">
+            <img src="${ASSET_BASE}bafuda-safe-cut.jpg" alt="スカ" />
+            <span>スカ ${actualSafes}枚</span>
+          </div>
+        </div>
       `;
 
       renderClaimButtons();
@@ -1685,7 +1827,6 @@
       }
       const card = actor.hand.find((c) => c.uid === uid);
       if (!card) return;
-      if (card.lastOnly && actor.hand.length !== 1) return;
 
       game.basicCutMode = false;
       game.selectedCardUid = game.selectedCardUid === uid ? null : uid;
@@ -1693,17 +1834,37 @@
       renderAll();
     }
 
-    function selectBasicCut() {
+    function commitFaceDownCut() {
       if (!game || game.phase !== "action" || game.winner) return;
       if (game.turnStep !== "pick_card") return;
-
       const actor = game.players[game.turnIndex];
       if (game.viewingPlayerIndex !== actor.index) return;
-      if (actor.hand.length === 0) return;
+      if (!game.selectedCardUid) return;
 
+      const cardIdx = actor.hand.findIndex((c) => c.uid === game.selectedCardUid);
+      if (cardIdx === -1) return;
+      const [discarded] = actor.hand.splice(cardIdx, 1);
+
+      const actorLabel = `${seatMark(actor.index)}${actor.name}`;
+      game.playedAction = { kind: "basic_cut", card: null, discardedCard: discarded };
       game.selectedCardUid = null;
-      game.basicCutMode = !game.basicCutMode;
+      game.basicCutMode = false;
+      game.turnStep = "share_modal";
       game.selectedTargets = [];
+
+      addLog(`${actorLabel} が手札を1枚裏向きで捨てて「手札を1枚捨ててカット」を宣言しました！`, false);
+
+      document.getElementById("playShareTitle").textContent = "手札を1枚捨ててカット（全員共有）";
+      document.getElementById("playShareSubtitle").textContent =
+        `${actorLabel} が手札を1枚裏向きで場に出しました。全員に共有したら「OK」を押してください。`;
+      document.getElementById("playShareBox").innerHTML = `
+        <div style="font-size: 0.8rem; color: var(--muted); margin-bottom: 6px;">場に出されたアクション</div>
+        <img src="${ACTION_IMAGES.basic_cut}" alt="手札を1枚捨ててカット" class="modal-thumb" />
+        <div style="font-size: 1.05rem; font-weight: 800; color: #38bdf8;">✂️ 手札を1枚捨ててカット</div>
+        <div style="font-size: 0.78rem; color: var(--muted); margin-top: 6px;">※捨てたカードの中身は非公開です</div>
+      `;
+      document.getElementById("playShareOkBtn").textContent = "OK（切る導線を選ぶ）";
+      document.getElementById("playShareModal").classList.add("open");
       renderAll();
     }
 
@@ -1791,6 +1952,7 @@
       if (!game.selectedCardUid) return;
       const cardIdx = actor.hand.findIndex((c) => c.uid === game.selectedCardUid);
       if (cardIdx === -1) return;
+      if (actor.hand[cardIdx].lastOnly && actor.hand.length !== 1) return;
       const [card] = actor.hand.splice(cardIdx, 1);
 
       game.playedAction = { kind: "card", card, discardedCard: null };
@@ -2358,7 +2520,7 @@
     }
 
     function closeAllModals() {
-      ["playShareModal", "peekModal", "claimModal", "surikModal", "allLogsModal", "resultModal"].forEach(closeModal);
+      ["roleModal", "playShareModal", "peekModal", "claimModal", "surikModal", "allLogsModal", "resultModal"].forEach(closeModal);
     }
 
     function switchViewTo(playerIdx) {
@@ -2745,14 +2907,14 @@
       if (game.phase === "action" && game.turnStep === "pick_target" && game.playedAction) {
         playedBanner.style.display = "flex";
         const pName = game.playedAction.kind === "basic_cut"
-          ? "✂️ 手札を捨てて基本カット"
+          ? "✂️ 手札を1枚捨ててカット"
           : `🃏 ${game.playedAction.card.name}`;
         playedBanner.innerHTML = `<span>場に出したカード：<strong>${pName}</strong></span><span>対象を選んで「OK」</span>`;
       } else {
         playedBanner.style.display = "none";
       }
 
-      // 4スロット描画（手札最大3枚 + 右横に「手札を捨ててカット」）
+      // 3スロット描画（自分の手札最大3枚）
       const handCardsEl = document.getElementById("handCards");
       handCardsEl.innerHTML = "";
 
@@ -2760,7 +2922,7 @@
         const c = viewer.hand[slotIdx];
         if (c) {
           const lockedLastOnly = c.lastOnly && viewer.hand.length !== 1;
-          const disabled = !isViewerTurn || game.turnStep !== "pick_card" || lockedLastOnly;
+          const disabled = !isViewerTurn || game.turnStep !== "pick_card";
           const isSelected = game.turnStep === "pick_card" && game.selectedCardUid === c.uid;
           const btn = document.createElement("button");
           btn.type = "button";
@@ -2777,7 +2939,7 @@
               <div class="card-desc">${c.desc}</div>
             </div>
             <div class="card-status-tag">
-              ${lockedLastOnly ? "※手札1枚時のみ" : isSelected ? "✓ 選択中" : ""}
+              ${isSelected ? "✓ 選択中" : lockedLastOnly ? "※効果発動は手札1枚時のみ" : ""}
             </div>
           `;
           handCardsEl.appendChild(btn);
@@ -2796,32 +2958,10 @@
         }
       }
 
-      // 4列目：手札を捨ててカット
-      const basicDisabled = !isViewerTurn || game.turnStep !== "pick_card" || viewer.hand.length === 0;
-      const basicSelected = game.turnStep === "pick_card" && game.basicCutMode;
-      const basicCardBtn = document.createElement("button");
-      basicCardBtn.type = "button";
-      basicCardBtn.className =
-        "hand-card basic-cut-slot" +
-        (basicSelected ? " selected" : "") +
-        (basicDisabled ? " disabled-card" : "");
-      basicCardBtn.disabled = basicDisabled;
-      basicCardBtn.onclick = () => selectBasicCut();
-      basicCardBtn.innerHTML = `
-        <div>
-          <img src="${ACTION_IMAGES.basic_cut}" alt="手札を捨ててカット" class="card-thumb" />
-          <div class="card-title">✂️ 手札を捨ててカット</div>
-          <div class="card-desc">手札1枚を裏向きで捨て、他人の導線1枚を切る。</div>
-        </div>
-        <div class="card-status-tag">
-          ${basicSelected ? "✓ 選択中" : "基本アクション"}
-        </div>
-      `;
-      handCardsEl.appendChild(basicCardBtn);
-
       // 下部ステータス＆ボタン制御
       const statusEl = document.getElementById("selectionStatus");
       const cancelBtn = document.getElementById("cancelTurnStepBtn");
+      const faceDownCutBtn = document.getElementById("faceDownCutBtn");
       const primaryBtn = document.getElementById("primaryStepBtn");
 
       if (game.phase !== "action") {
@@ -2830,34 +2970,43 @@
             ? "議論タイム中です。話し合いが終わったら「議論終了」を押してください。"
             : "初期導線確認・申告中、またはゲーム終了です。";
         cancelBtn.style.display = "none";
+        faceDownCutBtn.style.display = "none";
         primaryBtn.textContent = "場に出す（OK）";
         primaryBtn.disabled = true;
       } else if (!isViewerTurn) {
         statusEl.textContent = `現在は ${seatMark(actor.index)}${actor.name} の手番です。上の「視点」から選んで操作してください。`;
         cancelBtn.style.display = "none";
+        faceDownCutBtn.style.display = "none";
         primaryBtn.textContent = "場に出す（OK）";
         primaryBtn.disabled = true;
       } else if (game.turnStep === "pick_card") {
-        const hasChoice = Boolean(game.selectedCardUid || game.basicCutMode);
-        cancelBtn.style.display = hasChoice ? "inline-block" : "none";
-        primaryBtn.textContent = "場に出す（OK）";
-        primaryBtn.disabled = !hasChoice;
+        const picked = game.selectedCardUid ? actor.hand.find((c) => c.uid === game.selectedCardUid) : null;
+        const hasChoice = Boolean(picked);
+        const canPlayCardEffect = Boolean(picked && (!picked.lastOnly || actor.hand.length === 1));
 
-        if (game.basicCutMode) {
-          statusEl.textContent = "「手札を捨ててカット」を選択中。「場に出す（OK）」を押すと全員に宣言されます。";
-        } else if (game.selectedCardUid) {
-          const picked = actor.hand.find((c) => c.uid === game.selectedCardUid);
-          statusEl.textContent = `「${picked ? picked.name : ""}」を選択中。「場に出す（OK）」で場に公開します。`;
+        cancelBtn.style.display = hasChoice ? "inline-block" : "none";
+        faceDownCutBtn.style.display = hasChoice ? "inline-block" : "none";
+        primaryBtn.textContent = "場に出す（OK）";
+        primaryBtn.disabled = !canPlayCardEffect;
+
+        if (picked) {
+          if (!canPlayCardEffect) {
+            statusEl.textContent = `「${picked.name}」を選択中（手札2枚以上のため効果は使えません。「裏向きでカット」なら捨ててカットできます）。`;
+          } else {
+            statusEl.textContent = `「${picked.name}」を選択中。「場に出す（OK）」または「裏向きでカット」を選んでください。`;
+          }
         } else {
-          statusEl.textContent = "場に出すアクションカード、または右横の「手札を捨ててカット」を選んでください。";
+          statusEl.textContent = "場に出す手札を1枚タップして選んでください。";
         }
       } else if (game.turnStep === "share_modal") {
         cancelBtn.style.display = "none";
+        faceDownCutBtn.style.display = "none";
         primaryBtn.textContent = "共有確認中…";
         primaryBtn.disabled = true;
         statusEl.textContent = "場に出したカードを全員に共有中です。モーダルの「OK」を押してください。";
       } else if (game.turnStep === "pick_target") {
         cancelBtn.style.display = "none";
+        faceDownCutBtn.style.display = "none";
         primaryBtn.textContent = "OK（効果を発動）";
         primaryBtn.disabled = !canExecuteTarget(spec);
 
